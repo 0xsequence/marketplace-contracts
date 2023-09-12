@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.4;
 
-interface INiftyswapOrderbookStorage {
+interface IOrderbookStorage {
     struct OrderRequest {
         bool isListing; // True if the order is a listing, false if it is an offer.
         bool isERC1155; // True if the token is an ERC1155 token, false if it is an ERC721 token.
@@ -33,7 +33,7 @@ interface INiftyswapOrderbookStorage {
     }
 }
 
-interface INiftyswapOrderbookFunctions is INiftyswapOrderbookStorage {
+interface IOrderbookFunctions is IOrderbookStorage {
     /**
      * Creates an order.
      * @param request The requested order's details.
@@ -121,12 +121,12 @@ interface INiftyswapOrderbookFunctions is INiftyswapOrderbookStorage {
     function isOrderValidBatch(bytes32[] memory orderIds) external view returns (bool[] memory valid);
 }
 
-interface INiftyswapOrderbookSignals {
+interface IOrderbookSignals {
     //
     // Events
     //
 
-    // See INiftyswapOrderbookFunctions.createOrder
+    // See IOrderbookFunctions.createOrder
     event OrderCreated(
         bytes32 indexed orderId,
         address indexed tokenContract,
@@ -138,12 +138,12 @@ interface INiftyswapOrderbookSignals {
         uint256 expiry
     );
 
-    // See INiftyswapOrderbookFunctions.acceptOrder
+    // See IOrderbookFunctions.acceptOrder
     event OrderAccepted(
         bytes32 indexed orderId, address indexed buyer, address indexed tokenContract, uint256 quantity
     );
 
-    // See INiftyswapOrderbookFunctions.cancelOrder
+    // See IOrderbookFunctions.cancelOrder
     event OrderCancelled(bytes32 indexed orderId, address indexed tokenContract);
 
     //
@@ -179,4 +179,4 @@ interface INiftyswapOrderbookSignals {
 }
 
 // solhint-disable-next-line no-empty-blocks
-interface INiftyswapOrderbook is INiftyswapOrderbookFunctions, INiftyswapOrderbookSignals {}
+interface IOrderbook is IOrderbookFunctions, IOrderbookSignals {}

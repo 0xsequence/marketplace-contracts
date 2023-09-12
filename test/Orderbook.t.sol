@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.4;
 
-import {NiftyswapOrderbook} from "contracts/NiftyswapOrderbook.sol";
+import {Orderbook} from "contracts/Orderbook.sol";
 import {
-    INiftyswapOrderbookSignals, INiftyswapOrderbookStorage
-} from "contracts/interfaces/INiftyswapOrderbook.sol";
+    IOrderbookSignals, IOrderbookStorage
+} from "contracts/interfaces/IOrderbook.sol";
 import {ERC721Mock} from "contracts/mocks/ERC721Mock.sol";
 import {ERC1155RoyaltyMock} from "contracts/mocks/ERC1155RoyaltyMock.sol";
 import {ERC721RoyaltyMock} from "contracts/mocks/ERC721RoyaltyMock.sol";
@@ -30,7 +30,7 @@ contract ERC1155ReentryAttacker is IERC1155TokenReceiver {
     function acceptListing(bytes32 orderId, uint256 quantity) external {
         _orderId = orderId;
         _quantity = quantity;
-        NiftyswapOrderbook(_orderbook).acceptOrder(_orderId, _quantity, new uint256[](0), new address[](0));
+        Orderbook(_orderbook).acceptOrder(_orderId, _quantity, new uint256[](0), new address[](0));
     }
 
     function onERC1155Received(address, address, uint256, uint256, bytes calldata) external returns (bytes4) {
@@ -41,7 +41,7 @@ contract ERC1155ReentryAttacker is IERC1155TokenReceiver {
         }
         // Attack the orderbook
         _hasAttacked = true;
-        NiftyswapOrderbook(_orderbook).acceptOrder(_orderId, _quantity, new uint256[](0), new address[](0));
+        Orderbook(_orderbook).acceptOrder(_orderId, _quantity, new uint256[](0), new address[](0));
         return IERC1155TokenReceiver.onERC1155Received.selector;
     }
 
@@ -54,8 +54,8 @@ contract ERC1155ReentryAttacker is IERC1155TokenReceiver {
     }
 }
 
-contract NiftyswapOrderbookTest is INiftyswapOrderbookSignals, INiftyswapOrderbookStorage, IERC721Errors, Test {
-    NiftyswapOrderbook private orderbook;
+contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, Test {
+    Orderbook private orderbook;
     ERC1155RoyaltyMock private erc1155;
     ERC721RoyaltyMock private erc721;
     ERC20TokenMock private erc20;
@@ -75,7 +75,7 @@ contract NiftyswapOrderbookTest is INiftyswapOrderbookSignals, INiftyswapOrderbo
     address[] private emptyFeeReceivers;
 
     function setUp() external {
-        orderbook = new NiftyswapOrderbook();
+        orderbook = new Orderbook();
         erc1155 = new ERC1155RoyaltyMock();
         erc721 = new ERC721RoyaltyMock();
         erc20 = new ERC20TokenMock();
