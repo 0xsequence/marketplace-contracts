@@ -1,3 +1,15 @@
 [submodule "lib/forge-std"]
 	path = lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "lib/uniswap-lib"]
+	path = lib/uniswap-lib
+	url = https://github.com/Uniswap/uniswap-lib
+[submodule "lib/0xsequence/erc20-meta-token"]
+	path = lib/0xsequence/erc20-meta-token
+	url = https://github.com/0xsequence/erc20-meta-token
+[submodule "lib/0xsequence/erc-1155"]
+	path = lib/0xsequence/erc-1155
+	url = https://github.com/0xsequence/erc-1155
+[submodule "lib/openzeppelin"]
+	path = lib/openzeppelin
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
