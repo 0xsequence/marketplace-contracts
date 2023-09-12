@@ -20,6 +20,29 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * @notice An offer is when the maker is buying tokens with currency.
    */
   function createOrder(OrderRequest memory request) public nonReentrant returns (bytes32 orderId) {
+    return _createOrder(request);
+  }
+
+  /**
+   * Creates orders.
+   * @param requests The requested orders' details.
+   * @return orderIds The IDs of the orders.
+   */
+  function createOrderBatch(OrderRequest[] memory requests) external nonReentrant returns (bytes32[] memory orderIds) {
+    orderIds = new bytes32[](requests.length);
+    for (uint256 i; i < requests.length; i++) {
+      orderIds[i] = _createOrder(requests[i]);
+    }
+  }
+
+  /**
+   * Performs creation of an order.
+   * @param request The requested order's details.
+   * @return orderId The ID of the order.
+   * @notice A listing is when the maker is selling tokens for currency.
+   * @notice An offer is when the maker is buying tokens with currency.
+   */
+  function _createOrder(OrderRequest memory request) internal returns (bytes32 orderId) {
     uint256 quantity = request.quantity;
     address tokenContract = request.tokenContract;
 
@@ -76,18 +99,6 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
   }
 
   /**
-   * Creates orders.
-   * @param requests The requested orders' details.
-   * @return orderIds The IDs of the orders.
-   */
-  function createOrderBatch(OrderRequest[] memory requests) external returns (bytes32[] memory orderIds) {
-    orderIds = new bytes32[](requests.length);
-    for (uint256 i; i < requests.length; i++) {
-      orderIds[i] = createOrder(requests[i]);
-    }
-  }
-
-  /**
    * Accepts an order.
    * @param orderId The ID of the order.
    * @param quantity The quantity of tokens to accept.
@@ -102,6 +113,48 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
   )
     public
     nonReentrant
+  {
+    _acceptOrder(orderId, quantity, additionalFees, additionalFeeReceivers);
+  }
+
+  /**
+   * Accepts orders.
+   * @param orderIds The IDs of the orders.
+   * @param quantities The quantities of tokens to accept.
+   * @param additionalFees The additional fees to pay.
+   * @param additionalFeeReceivers The addresses to send the additional fees to.
+   * @dev Additional fees are applied to each order.
+   */
+  function acceptOrderBatch(
+    bytes32[] memory orderIds,
+    uint256[] memory quantities,
+    uint256[] memory additionalFees,
+    address[] memory additionalFeeReceivers
+  )
+    external
+    nonReentrant
+  {
+    if (orderIds.length != quantities.length) revert InvalidBatchRequest();
+
+    for (uint256 i; i < orderIds.length; i++) {
+      _acceptOrder(orderIds[i], quantities[i], additionalFees, additionalFeeReceivers);
+    }
+  }
+
+  /**
+   * Performs acceptance of an order.
+   * @param orderId The ID of the order.
+   * @param quantity The quantity of tokens to accept.
+   * @param additionalFees The additional fees to pay.
+   * @param additionalFeeReceivers The addresses to send the additional fees to.
+   */
+  function _acceptOrder(
+    bytes32 orderId,
+    uint256 quantity,
+    uint256[] memory additionalFees,
+    address[] memory additionalFeeReceivers
+  )
+    internal
   {
     Order memory order = _orders[orderId];
     if (order.creator == address(0)) {
@@ -173,33 +226,28 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
   }
 
   /**
-   * Accepts orders.
-   * @param orderIds The IDs of the orders.
-   * @param quantities The quantities of tokens to accept.
-   * @param additionalFees The additional fees to pay.
-   * @param additionalFeeReceivers The addresses to send the additional fees to.
-   * @dev Additional fees are applied to each order.
-   */
-  function acceptOrderBatch(
-    bytes32[] memory orderIds,
-    uint256[] memory quantities,
-    uint256[] memory additionalFees,
-    address[] memory additionalFeeReceivers
-  )
-    external
-  {
-    if (orderIds.length != quantities.length) revert InvalidBatchRequest();
-
-    for (uint256 i; i < orderIds.length; i++) {
-      acceptOrder(orderIds[i], quantities[i], additionalFees, additionalFeeReceivers);
-    }
-  }
-
-  /**
    * Cancels an order.
    * @param orderId The ID of the order.
    */
   function cancelOrder(bytes32 orderId) public nonReentrant {
+    _cancelOrder(orderId);
+  }
+
+  /**
+   * Cancels orders.
+   * @param orderIds The IDs of the orders.
+   */
+  function cancelOrderBatch(bytes32[] memory orderIds) external nonReentrant {
+    for (uint256 i; i < orderIds.length; i++) {
+      _cancelOrder(orderIds[i]);
+    }
+  }
+
+  /**
+   * Performs cancellation of an order.
+   * @param orderId The ID of the order.
+   */
+  function _cancelOrder(bytes32 orderId) internal {
     Order storage order = _orders[orderId];
     if (order.creator != msg.sender) revert InvalidOrderId(orderId);
     address tokenContract = order.tokenContract;
@@ -208,16 +256,6 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     delete _orders[orderId];
 
     emit OrderCancelled(orderId, tokenContract);
-  }
-
-  /**
-   * Cancels orders.
-   * @param orderIds The IDs of the orders.
-   */
-  function cancelOrderBatch(bytes32[] memory orderIds) external {
-    for (uint256 i; i < orderIds.length; i++) {
-      cancelOrder(orderIds[i]);
-    }
   }
 
   /**

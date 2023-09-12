@@ -20,7 +20,7 @@ An offer is when the maker is buying tokens with currency.
 
 
 ```solidity
-function createOrder(OrderRequest memory request) public returns (bytes32 orderId);
+function createOrder(OrderRequest memory request) public nonReentrant returns (bytes32 orderId);
 ```
 **Parameters**
 
@@ -41,7 +41,7 @@ Creates orders.
 
 
 ```solidity
-function createOrderBatch(OrderRequest[] memory requests) external returns (bytes32[] memory orderIds);
+function createOrderBatch(OrderRequest[] memory requests) external nonReentrant returns (bytes32[] memory orderIds);
 ```
 **Parameters**
 
@@ -56,6 +56,31 @@ function createOrderBatch(OrderRequest[] memory requests) external returns (byte
 |`orderIds`|`bytes32[]`|The IDs of the orders.|
 
 
+### _createOrder
+
+Performs creation of an order.
+
+A listing is when the maker is selling tokens for currency.
+
+An offer is when the maker is buying tokens with currency.
+
+
+```solidity
+function _createOrder(OrderRequest memory request) internal returns (bytes32 orderId);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`request`|`OrderRequest`|The requested order's details.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`orderId`|`bytes32`|The ID of the order.|
+
+
 ### acceptOrder
 
 Accepts an order.
@@ -68,7 +93,8 @@ function acceptOrder(
   uint256[] memory additionalFees,
   address[] memory additionalFeeReceivers
 )
-  public;
+  public
+  nonReentrant;
 ```
 **Parameters**
 
@@ -94,7 +120,8 @@ function acceptOrderBatch(
   uint256[] memory additionalFees,
   address[] memory additionalFeeReceivers
 )
-  external;
+  external
+  nonReentrant;
 ```
 **Parameters**
 
@@ -106,13 +133,37 @@ function acceptOrderBatch(
 |`additionalFeeReceivers`|`address[]`|The addresses to send the additional fees to.|
 
 
+### _acceptOrder
+
+Performs acceptance of an order.
+
+
+```solidity
+function _acceptOrder(
+  bytes32 orderId,
+  uint256 quantity,
+  uint256[] memory additionalFees,
+  address[] memory additionalFeeReceivers
+)
+  internal;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`orderId`|`bytes32`|The ID of the order.|
+|`quantity`|`uint256`|The quantity of tokens to accept.|
+|`additionalFees`|`uint256[]`|The additional fees to pay.|
+|`additionalFeeReceivers`|`address[]`|The addresses to send the additional fees to.|
+
+
 ### cancelOrder
 
 Cancels an order.
 
 
 ```solidity
-function cancelOrder(bytes32 orderId) public;
+function cancelOrder(bytes32 orderId) public nonReentrant;
 ```
 **Parameters**
 
@@ -127,13 +178,28 @@ Cancels orders.
 
 
 ```solidity
-function cancelOrderBatch(bytes32[] memory orderIds) external;
+function cancelOrderBatch(bytes32[] memory orderIds) external nonReentrant;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`orderIds`|`bytes32[]`|The IDs of the orders.|
+
+
+### _cancelOrder
+
+Performs cancellation of an order.
+
+
+```solidity
+function _cancelOrder(bytes32 orderId) internal;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`orderId`|`bytes32`|The ID of the order.|
 
 
 ### hashOrder
