@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.4;
 
-import {ERC721Mock} from "./ERC721Mock.sol";
-import {IERC2981} from "../interfaces/IERC2981.sol";
+import {ERC1155MintBurnMock} from "@0xsequence/erc-1155/contracts/mocks/ERC1155MintBurnMock.sol";
+import {IERC2981} from "contracts/interfaces/IERC2981.sol";
 
-contract ERC721RoyaltyMock is ERC721Mock {
-  constructor() ERC721Mock() {} // solhint-disable-line no-empty-blocks
+contract ERC1155RoyaltyMock is ERC1155MintBurnMock {
+  constructor() ERC1155MintBurnMock("TestERC1155", "") {} // solhint-disable-line no-empty-blocks
 
   uint256 public royaltyFee;
   address public royaltyRecipient;
@@ -60,7 +60,7 @@ contract ERC721RoyaltyMock is ERC721Mock {
    * @param _interfaceID  The interface identifier, as specified in ERC-165
    * @return `true` if the contract implements `_interfaceID` and
    */
-  function supportsInterface(bytes4 _interfaceID) public view virtual override returns (bool) {
+  function supportsInterface(bytes4 _interfaceID) public view virtual override (ERC1155MintBurnMock) returns (bool) {
     // Should be 0x2a55205a
     if (_interfaceID == _INTERFACE_ID_ERC2981) return true;
     return super.supportsInterface(_interfaceID);

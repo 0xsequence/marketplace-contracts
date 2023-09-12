@@ -3,10 +3,10 @@ pragma solidity ^0.8.4;
 
 import {Orderbook} from "contracts/Orderbook.sol";
 import {IOrderbookSignals, IOrderbookStorage} from "contracts/interfaces/IOrderbook.sol";
-import {ERC721Mock} from "contracts/mocks/ERC721Mock.sol";
-import {ERC1155RoyaltyMock} from "contracts/mocks/ERC1155RoyaltyMock.sol";
-import {ERC721RoyaltyMock} from "contracts/mocks/ERC721RoyaltyMock.sol";
-import {ERC20TokenMock} from "contracts/mocks/ERC20TokenMock.sol";
+import {ERC721Mock} from "./mocks/ERC721Mock.sol";
+import {ERC1155RoyaltyMock} from "./mocks/ERC1155RoyaltyMock.sol";
+import {ERC721RoyaltyMock} from "./mocks/ERC721RoyaltyMock.sol";
+import {ERC20TokenMock} from "./mocks/ERC20TokenMock.sol";
 import {IERC1155TokenReceiver} from "0xsequence/erc-1155/src/contracts/interfaces/IERC1155TokenReceiver.sol";
 import {IERC721Errors} from "openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 
