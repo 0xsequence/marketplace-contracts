@@ -16,8 +16,6 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * Creates an order.
    * @param request The requested order's details.
    * @return orderId The ID of the order.
-   * @notice A listing is when the maker is selling tokens for currency.
-   * @notice An offer is when the maker is buying tokens with currency.
    */
   function createOrder(OrderRequest memory request) public nonReentrant returns (bytes32 orderId) {
     return _createOrder(request);
@@ -39,8 +37,6 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * Performs creation of an order.
    * @param request The requested order's details.
    * @return orderId The ID of the order.
-   * @notice A listing is when the maker is selling tokens for currency.
-   * @notice An offer is when the maker is buying tokens with currency.
    */
   function _createOrder(OrderRequest memory request) internal returns (bytes32 orderId) {
     uint256 quantity = request.quantity;

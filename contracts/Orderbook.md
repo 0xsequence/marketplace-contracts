@@ -14,10 +14,6 @@ mapping(bytes32 => Order) internal _orders;
 
 Creates an order.
 
-A listing is when the maker is selling tokens for currency.
-
-An offer is when the maker is buying tokens with currency.
-
 
 ```solidity
 function createOrder(OrderRequest memory request) public nonReentrant returns (bytes32 orderId);
@@ -59,10 +55,6 @@ function createOrderBatch(OrderRequest[] memory requests) external nonReentrant 
 ### _createOrder
 
 Performs creation of an order.
-
-A listing is when the maker is selling tokens for currency.
-
-An offer is when the maker is buying tokens with currency.
 
 
 ```solidity
