@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.4;
+pragma solidity 0.8.20;
 
 import {ERC721Mock} from "./ERC721Mock.sol";
 import {IERC2981} from "contracts/interfaces/IERC2981.sol";

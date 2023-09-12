@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.4;
+pragma solidity 0.8.20;
 
 interface IOrderbookStorage {
-
   /**
    * Order request parameters.
    * @param isListing True if the order is a listing, false if it is an offer.

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.4;
+pragma solidity 0.8.20;
 
 import {IOrderbook} from "./interfaces/IOrderbook.sol";
 import {IERC721} from "./interfaces/IERC721.sol";
