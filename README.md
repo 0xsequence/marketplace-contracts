@@ -40,10 +40,10 @@ forge fmt contracts test script
 
 ### Docs
 
-View docs with:
+Generate docs with:
 
 ```bash
-forge doc --serve --port 4000
+./generateDocs.sh
 ```
 
 ## License
