@@ -17,7 +17,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * @param request The requested order's details.
    * @return orderId The ID of the order.
    */
-  function createOrder(OrderRequest memory request) public nonReentrant returns (bytes32 orderId) {
+  function createOrder(OrderRequest memory request) external nonReentrant returns (bytes32 orderId) {
     return _createOrder(request);
   }
 
@@ -107,7 +107,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     uint256[] memory additionalFees,
     address[] memory additionalFeeReceivers
   )
-    public
+    external
     nonReentrant
   {
     _acceptOrder(orderId, quantity, additionalFees, additionalFeeReceivers);
@@ -225,7 +225,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * Cancels an order.
    * @param orderId The ID of the order.
    */
-  function cancelOrder(bytes32 orderId) public nonReentrant {
+  function cancelOrder(bytes32 orderId) external nonReentrant {
     _cancelOrder(orderId);
   }
 
