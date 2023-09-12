@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.4;
 
-import {INiftyswapOrderbook} from "./interfaces/INiftyswapOrderbook.sol";
+import {IOrderbook} from "./interfaces/IOrderbook.sol";
 import {IERC721} from "./interfaces/IERC721.sol";
 import {IERC2981} from "./interfaces/IERC2981.sol";
 import {IERC20} from "0xsequence/erc-1155/src/contracts/interfaces/IERC20.sol";
 import {IERC1155} from "0xsequence/erc-1155/src/contracts/interfaces/IERC1155.sol";
 import {TransferHelper} from "uniswap-lib/libraries/TransferHelper.sol";
 
-contract NiftyswapOrderbook is INiftyswapOrderbook {
+contract Orderbook is IOrderbook {
     mapping(bytes32 => Order) internal _orders;
 
     /**
