@@ -4,8 +4,8 @@ pragma solidity ^0.8.4;
 import {IOrderbook} from "./interfaces/IOrderbook.sol";
 import {IERC721} from "./interfaces/IERC721.sol";
 import {IERC2981} from "./interfaces/IERC2981.sol";
-import {IERC20} from "0xsequence/erc-1155/src/contracts/interfaces/IERC20.sol";
-import {IERC1155} from "0xsequence/erc-1155/src/contracts/interfaces/IERC1155.sol";
+import {IERC20} from "@0xsequence/erc-1155/contracts/interfaces/IERC20.sol";
+import {IERC1155} from "@0xsequence/erc-1155/contracts/interfaces/IERC1155.sol";
 import {TransferHelper} from "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
