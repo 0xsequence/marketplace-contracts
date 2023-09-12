@@ -542,6 +542,49 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     return orderId;
   }
 
+  function test_cancelListing_partialFill(OrderRequest memory request) public returns (bytes32 orderId) {
+    request.isERC1155 = true;
+    _fixRequest(request, true);
+    if (request.quantity == 1) {
+      // Ensure multiple available
+      request.quantity++;
+      _fixRequest(request, true);
+    }
+    orderId = test_createListing(request);
+
+    // Partial fill
+    vm.prank(CURRENCY_OWNER);
+    orderbook.acceptOrder(orderId, 1, emptyFees, emptyFeeReceivers);
+
+    // Fails invalid sender
+    vm.expectRevert(abi.encodeWithSelector(InvalidOrderId.selector, orderId));
+    orderbook.cancelOrder(orderId);
+
+    // Succeeds correct sender
+
+    vm.expectEmit(true, true, true, true, address(orderbook));
+    emit OrderCancelled(orderId, request.tokenContract);
+    vm.prank(TOKEN_OWNER);
+    orderbook.cancelOrder(orderId);
+
+    Order memory listing = orderbook.getOrder(orderId);
+    // Zero'd
+    assertEq(listing.creator, address(0));
+    assertEq(listing.tokenContract, address(0));
+    assertEq(listing.tokenId, 0);
+    assertEq(listing.quantity, 0);
+    assertEq(listing.currency, address(0));
+    assertEq(listing.pricePerToken, 0);
+    assertEq(listing.expiry, 0);
+
+    // Accept fails
+    vm.prank(CURRENCY_OWNER);
+    vm.expectRevert(abi.encodeWithSelector(InvalidOrderId.selector, orderId));
+    orderbook.acceptOrder(orderId, 1, emptyFees, emptyFeeReceivers);
+
+    return orderId;
+  }
+
   //
   // Create Offer
   //
@@ -873,6 +916,44 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     // Fails invalid sender
     vm.expectRevert(abi.encodeWithSelector(InvalidOrderId.selector, orderId));
     orderbook.cancelOrder(orderId);
+
+    // Succeeds correct sender
+    vm.expectEmit(true, true, true, true, address(orderbook));
+    emit OrderCancelled(orderId, request.tokenContract);
+    vm.prank(CURRENCY_OWNER);
+    orderbook.cancelOrder(orderId);
+
+    Order memory offer = orderbook.getOrder(orderId);
+    // Zero'd
+    assertEq(offer.creator, address(0));
+    assertEq(offer.tokenContract, address(0));
+    assertEq(offer.tokenId, 0);
+    assertEq(offer.quantity, 0);
+    assertEq(offer.currency, address(0));
+    assertEq(offer.pricePerToken, 0);
+    assertEq(offer.expiry, 0);
+
+    // Accept fails
+    vm.prank(TOKEN_OWNER);
+    vm.expectRevert(abi.encodeWithSelector(InvalidOrderId.selector, orderId));
+    orderbook.acceptOrder(orderId, 1, emptyFees, emptyFeeReceivers);
+
+    return orderId;
+  }
+
+  function test_cancelOffer_partialFill(OrderRequest memory request) external returns (bytes32 orderId) {
+    request.isERC1155 = true;
+    _fixRequest(request, false);
+    if (request.quantity == 1) {
+      // Ensure multiple available
+      request.quantity++;
+      _fixRequest(request, false);
+    }
+    orderId = test_createOffer(request);
+
+    // Partial fill
+    vm.prank(TOKEN_OWNER);
+    orderbook.acceptOrder(orderId, 1, emptyFees, emptyFeeReceivers);
 
     // Succeeds correct sender
     vm.expectEmit(true, true, true, true, address(orderbook));
