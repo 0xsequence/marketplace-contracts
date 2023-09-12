@@ -6,9 +6,10 @@ import {IERC721} from "./interfaces/IERC721.sol";
 import {IERC2981} from "./interfaces/IERC2981.sol";
 import {IERC20} from "0xsequence/erc-1155/src/contracts/interfaces/IERC20.sol";
 import {IERC1155} from "0xsequence/erc-1155/src/contracts/interfaces/IERC1155.sol";
-import {TransferHelper} from "uniswap-lib/libraries/TransferHelper.sol";
+import {TransferHelper} from "@uniswap/lib/contracts/libraries/TransferHelper.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract Orderbook is IOrderbook {
+contract Orderbook is IOrderbook, ReentrancyGuard {
   mapping(bytes32 => Order) internal _orders;
 
   /**
@@ -18,7 +19,7 @@ contract Orderbook is IOrderbook {
    * @notice A listing is when the maker is selling tokens for currency.
    * @notice An offer is when the maker is buying tokens with currency.
    */
-  function createOrder(OrderRequest memory request) public returns (bytes32 orderId) {
+  function createOrder(OrderRequest memory request) public nonReentrant returns (bytes32 orderId) {
     uint256 quantity = request.quantity;
     address tokenContract = request.tokenContract;
 
@@ -100,6 +101,7 @@ contract Orderbook is IOrderbook {
     address[] memory additionalFeeReceivers
   )
     public
+    nonReentrant
   {
     Order memory order = _orders[orderId];
     if (order.creator == address(0)) {
@@ -197,7 +199,7 @@ contract Orderbook is IOrderbook {
    * Cancels an order.
    * @param orderId The ID of the order.
    */
-  function cancelOrder(bytes32 orderId) public {
+  function cancelOrder(bytes32 orderId) public nonReentrant {
     Order storage order = _orders[orderId];
     if (order.creator != msg.sender) revert InvalidOrderId(orderId);
     address tokenContract = order.tokenContract;

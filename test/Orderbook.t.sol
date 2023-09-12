@@ -9,6 +9,7 @@ import {ERC721RoyaltyMock} from "./mocks/ERC721RoyaltyMock.sol";
 import {ERC20TokenMock} from "./mocks/ERC20TokenMock.sol";
 import {IERC1155TokenReceiver} from "0xsequence/erc-1155/src/contracts/interfaces/IERC1155TokenReceiver.sol";
 import {IERC721Errors} from "openzeppelin/contracts/interfaces/draft-IERC6093.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {Test, console, stdError} from "forge-std/Test.sol";
 
@@ -58,7 +59,7 @@ contract ERC1155ReentryAttacker is IERC1155TokenReceiver {
   }
 }
 
-contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, Test {
+contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, ReentrancyGuard, Test {
   Orderbook private orderbook;
   ERC1155RoyaltyMock private erc1155;
   ERC721RoyaltyMock private erc721;
@@ -502,7 +503,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, T
     vm.prank(address(attacker));
     erc20.approve(address(orderbook), CURRENCY_QUANTITY);
 
-    vm.expectRevert(abi.encodeWithSelector(InvalidOrderId.selector, orderId));
+    vm.expectRevert(ReentrancyGuardReentrantCall.selector);
     attacker.acceptListing(orderId, request.quantity);
   }
 
