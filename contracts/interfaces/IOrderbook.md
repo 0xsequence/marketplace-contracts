@@ -275,7 +275,13 @@ Emitted when an Order is accepted.
 
 
 ```solidity
-event OrderAccepted(bytes32 indexed orderId, address indexed buyer, address indexed tokenContract, uint256 quantity);
+event OrderAccepted(
+  bytes32 indexed orderId,
+  address indexed buyer,
+  address indexed tokenContract,
+  uint256 quantity,
+  uint256 quantityRemaining
+);
 ```
 
 ### OrderCancelled
