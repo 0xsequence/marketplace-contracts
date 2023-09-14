@@ -288,7 +288,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     uint256 royalty = (totalPrice * ROYALTY_FEE) / 10_000;
 
     vm.expectEmit(true, true, true, true, address(orderbook));
-    emit OrderAccepted(orderId, CURRENCY_OWNER, request.tokenContract, request.quantity);
+    emit OrderAccepted(orderId, CURRENCY_OWNER, request.tokenContract, request.quantity, 0);
     vm.prank(CURRENCY_OWNER);
     orderbook.acceptOrder(orderId, request.quantity, emptyFees, emptyFeeReceivers);
 
@@ -329,7 +329,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     bytes32 orderId = test_createListing(request);
 
     vm.expectEmit(true, true, true, true, address(orderbook));
-    emit OrderAccepted(orderId, CURRENCY_OWNER, request.tokenContract, request.quantity);
+    emit OrderAccepted(orderId, CURRENCY_OWNER, request.tokenContract, request.quantity, 0);
     vm.prank(CURRENCY_OWNER);
     orderbook.acceptOrder(orderId, request.quantity, additionalFees, additionalFeeReceivers);
 
@@ -446,10 +446,12 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
 
     bytes32 orderId = test_createListing(request);
 
-    vm.expectEmit(true, true, true, true, address(orderbook));
-    emit OrderAccepted(orderId, CURRENCY_OWNER, address(erc1155), request.quantity / 2);
     vm.startPrank(CURRENCY_OWNER);
+    vm.expectEmit(true, true, true, true, address(orderbook));
+    emit OrderAccepted(orderId, CURRENCY_OWNER, address(erc1155), request.quantity / 2, request.quantity / 2);
     orderbook.acceptOrder(orderId, request.quantity / 2, emptyFees, emptyFeeReceivers);
+    vm.expectEmit(true, true, true, true, address(orderbook));
+    emit OrderAccepted(orderId, CURRENCY_OWNER, address(erc1155), request.quantity / 2, 0);
     orderbook.acceptOrder(orderId, request.quantity / 2, emptyFees, emptyFeeReceivers);
     vm.stopPrank();
 
@@ -732,7 +734,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     orderId = test_createOffer(request);
 
     vm.expectEmit(true, true, true, true, address(orderbook));
-    emit OrderAccepted(orderId, TOKEN_OWNER, request.tokenContract, request.quantity);
+    emit OrderAccepted(orderId, TOKEN_OWNER, request.tokenContract, request.quantity, 0);
     vm.prank(TOKEN_OWNER);
     orderbook.acceptOrder(orderId, request.quantity, emptyFees, emptyFeeReceivers);
 
@@ -773,7 +775,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     bytes32 orderId = test_createOffer(request);
 
     vm.expectEmit(true, true, true, true, address(orderbook));
-    emit OrderAccepted(orderId, TOKEN_OWNER, request.tokenContract, request.quantity);
+    emit OrderAccepted(orderId, TOKEN_OWNER, request.tokenContract, request.quantity, 0);
     vm.prank(TOKEN_OWNER);
     orderbook.acceptOrder(orderId, request.quantity, additionalFees, additionalFeeReceivers);
 
@@ -890,10 +892,12 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
 
     bytes32 orderId = test_createOffer(request);
 
-    vm.expectEmit(true, true, true, true, address(orderbook));
-    emit OrderAccepted(orderId, TOKEN_OWNER, address(erc1155), request.quantity / 2);
     vm.startPrank(TOKEN_OWNER);
+    vm.expectEmit(true, true, true, true, address(orderbook));
+    emit OrderAccepted(orderId, TOKEN_OWNER, address(erc1155), request.quantity / 2, request.quantity / 2);
     orderbook.acceptOrder(orderId, request.quantity / 2, emptyFees, emptyFeeReceivers);
+    vm.expectEmit(true, true, true, true, address(orderbook));
+    emit OrderAccepted(orderId, TOKEN_OWNER, address(erc1155), request.quantity / 2, 0);
     orderbook.acceptOrder(orderId, request.quantity / 2, emptyFees, emptyFeeReceivers);
     vm.stopPrank();
 
@@ -1106,7 +1110,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
   //
   // Accept Order Batch
   //
-  function test_acceptOrderBatch() external {
+  function test_acceptOrderBatch_fixed() external {
     erc20.mockMint(TOKEN_OWNER, CURRENCY_QUANTITY);
     vm.prank(TOKEN_OWNER);
     erc20.approve(address(orderbook), CURRENCY_QUANTITY);
@@ -1139,15 +1143,62 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     quantities[3] = 1;
 
     vm.expectEmit(true, true, true, true, address(orderbook));
-    emit OrderAccepted(orderIds[0], TOKEN_OWNER, address(erc1155), 1);
+    emit OrderAccepted(orderIds[0], TOKEN_OWNER, address(erc1155), 1, 0);
     vm.expectEmit(true, true, true, true, address(orderbook));
-    emit OrderAccepted(orderIds[1], TOKEN_OWNER, address(erc721), 1);
+    emit OrderAccepted(orderIds[1], TOKEN_OWNER, address(erc721), 1, 0);
     vm.expectEmit(true, true, true, true, address(orderbook));
-    emit OrderAccepted(orderIds[2], TOKEN_OWNER, address(erc1155), 1);
+    emit OrderAccepted(orderIds[2], TOKEN_OWNER, address(erc1155), 1, 0);
     vm.expectEmit(true, true, true, true, address(orderbook));
-    emit OrderAccepted(orderIds[3], TOKEN_OWNER, address(erc721), 1);
+    emit OrderAccepted(orderIds[3], TOKEN_OWNER, address(erc721), 1, 0);
     vm.prank(TOKEN_OWNER);
     orderbook.acceptOrderBatch(orderIds, quantities, emptyFees, emptyFeeReceivers);
+  }
+
+  function test_acceptOrderBatch_fuzz(uint8 count, OrderRequest[] memory input, uint8[] memory quantities) external {
+    bytes32[] memory orderIds = test_createOrderBatch(count, input);
+    uint256 orderCount = orderIds.length;
+    assembly {
+      // Ensure array size is sufficient. 0s will be bound
+      mstore(quantities, orderCount)
+    }
+
+    vm.startPrank(CURRENCY_OWNER);
+    erc1155.setApprovalForAll(address(orderbook), true);
+    erc721.setApprovalForAll(address(orderbook), true);
+    erc20.approve(address(orderbook), type(uint256).max);
+    vm.stopPrank();
+
+    for (uint256 i; i < orderCount; i++) {
+      if (orderbook.isOrderValid(orderIds[i])) {
+        Order memory order = orderbook.getOrder(orderIds[i]);
+        uint256 orderQuantity = order.quantity;
+
+        // Check can accept
+        if (order.isListing) {
+          // Give enough currency to accept
+          uint256 required = order.quantity * order.pricePerToken;
+          erc20.mockMint(CURRENCY_OWNER, required);
+        } else if (order.isERC1155) {
+          // Give enough tokens to accept
+          uint256[] memory tokenIds = new uint256[](1);
+          tokenIds[0] = order.tokenId;
+          uint256[] memory required = new uint256[](1);
+          required[0] = order.quantity;
+          erc1155.batchMintMock(CURRENCY_OWNER, tokenIds, required, "");
+        } else if (erc721.ownerOf(order.tokenId) != CURRENCY_OWNER) {
+          // Skip this. We don't fix it
+          continue;
+        }
+
+        // Random valid quantity
+        uint256 quantity = _bound(quantities[i], 1, order.quantity);
+
+        vm.expectEmit(true, true, true, true, address(orderbook));
+        emit OrderAccepted(orderIds[i], CURRENCY_OWNER, order.tokenContract, quantity, orderQuantity - quantity);
+        vm.prank(CURRENCY_OWNER);
+        orderbook.acceptOrder(orderIds[i], quantity, emptyFees, emptyFeeReceivers);
+      }
+    }
   }
 
   function test_acceptListingBatch(OrderRequest memory request) external {
@@ -1173,9 +1224,9 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     quantities[1] = request.quantity;
 
     vm.expectEmit(true, true, true, true, address(orderbook));
-    emit OrderAccepted(orderIds[0], CURRENCY_OWNER, address(erc1155), request.quantity);
+    emit OrderAccepted(orderIds[0], CURRENCY_OWNER, address(erc1155), request.quantity, 0);
     vm.expectEmit(true, true, true, true, address(orderbook));
-    emit OrderAccepted(orderIds[1], CURRENCY_OWNER, address(erc1155), request.quantity);
+    emit OrderAccepted(orderIds[1], CURRENCY_OWNER, address(erc1155), request.quantity, 0);
     vm.startPrank(CURRENCY_OWNER);
     orderbook.acceptOrderBatch(orderIds, quantities, emptyFees, emptyFeeReceivers);
     vm.stopPrank();
@@ -1212,9 +1263,9 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     quantities[1] = request.quantity;
 
     vm.expectEmit(true, true, true, true, address(orderbook));
-    emit OrderAccepted(orderIds[0], TOKEN_OWNER, address(erc1155), request.quantity);
+    emit OrderAccepted(orderIds[0], TOKEN_OWNER, address(erc1155), request.quantity, 0);
     vm.expectEmit(true, true, true, true, address(orderbook));
-    emit OrderAccepted(orderIds[1], TOKEN_OWNER, address(erc1155), request.quantity);
+    emit OrderAccepted(orderIds[1], TOKEN_OWNER, address(erc1155), request.quantity, 0);
     vm.startPrank(TOKEN_OWNER);
     orderbook.acceptOrderBatch(orderIds, quantities, emptyFees, emptyFeeReceivers);
     vm.stopPrank();

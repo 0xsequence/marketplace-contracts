@@ -157,7 +157,13 @@ interface IOrderbookSignals {
   );
 
   /// Emitted when an Order is accepted.
-  event OrderAccepted(bytes32 indexed orderId, address indexed buyer, address indexed tokenContract, uint256 quantity);
+  event OrderAccepted(
+    bytes32 indexed orderId,
+    address indexed buyer,
+    address indexed tokenContract,
+    uint256 quantity,
+    uint256 quantityRemaining
+  );
 
   /// Emitted when an Order is cancelled.
   event OrderCancelled(bytes32 indexed orderId, address indexed tokenContract);

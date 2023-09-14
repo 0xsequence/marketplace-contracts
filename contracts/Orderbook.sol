@@ -218,7 +218,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
       IERC721(tokenContract).transferFrom(currencyReceiver, tokenReceiver, order.tokenId);
     }
 
-    emit OrderAccepted(orderId, msg.sender, tokenContract, quantity);
+    emit OrderAccepted(orderId, msg.sender, tokenContract, quantity, _orders[orderId].quantity);
   }
 
   /**

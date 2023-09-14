@@ -16,7 +16,7 @@ Creates an order.
 
 
 ```solidity
-function createOrder(OrderRequest memory request) public nonReentrant returns (bytes32 orderId);
+function createOrder(OrderRequest memory request) external nonReentrant returns (bytes32 orderId);
 ```
 **Parameters**
 
@@ -85,7 +85,7 @@ function acceptOrder(
   uint256[] memory additionalFees,
   address[] memory additionalFeeReceivers
 )
-  public
+  external
   nonReentrant;
 ```
 **Parameters**
@@ -155,7 +155,7 @@ Cancels an order.
 
 
 ```solidity
-function cancelOrder(bytes32 orderId) public nonReentrant;
+function cancelOrder(bytes32 orderId) external nonReentrant;
 ```
 **Parameters**
 
