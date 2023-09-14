@@ -172,6 +172,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
 
   function test_createListing_invalidToken(OrderRequest memory request, address badContract) external {
     vm.assume(badContract != address(erc1155) && badContract != address(erc721));
+    vm.assume(uint160(badContract) > 10); // Precompile
     _fixRequest(request, true);
     request.tokenContract = badContract;
 
@@ -451,6 +452,36 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     orderbook.acceptOrder(orderId, request.quantity / 2, emptyFees, emptyFeeReceivers);
     orderbook.acceptOrder(orderId, request.quantity / 2, emptyFees, emptyFeeReceivers);
     vm.stopPrank();
+
+    assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
+    assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice);
+    assertEq(erc20.balanceOf(TOKEN_OWNER), erc20BalTokenOwner + totalPrice - royalty);
+    assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty);
+  }
+
+  function test_acceptListingBatch_repeat(OrderRequest memory request) external {
+    // Potential exploit of royalty rounding.
+    request.isERC1155 = true;
+    _fixRequest(request, true);
+
+    uint256 totalPrice = request.pricePerToken * request.quantity;
+    uint256 royalty = ((request.pricePerToken * ROYALTY_FEE) / 10_000) * request.quantity;
+
+    uint256 erc20BalCurrency = erc20.balanceOf(CURRENCY_OWNER);
+    uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
+    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
+
+    bytes32 orderId = test_createListing(request);
+    bytes32[] memory orderIds = new bytes32[](request.quantity);
+    uint256[] memory quantities = new uint256[](request.quantity);
+
+    for (uint256 i; i < request.quantity; i++) {
+      orderIds[i] = orderId;
+      quantities[i] = 1;
+    }
+
+    vm.prank(CURRENCY_OWNER);
+    orderbook.acceptOrderBatch(orderIds, quantities, emptyFees, emptyFeeReceivers);
 
     assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice);
@@ -865,6 +896,36 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     orderbook.acceptOrder(orderId, request.quantity / 2, emptyFees, emptyFeeReceivers);
     orderbook.acceptOrder(orderId, request.quantity / 2, emptyFees, emptyFeeReceivers);
     vm.stopPrank();
+
+    assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
+    assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice - royalty);
+    assertEq(erc20.balanceOf(TOKEN_OWNER), erc20BalTokenOwner + totalPrice);
+    assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty);
+  }
+
+  function test_acceptOfferBatch_repeat(OrderRequest memory request) external {
+    // Potential exploit of royalty rounding.
+    request.isERC1155 = true;
+    _fixRequest(request, true);
+
+    uint256 totalPrice = request.pricePerToken * request.quantity;
+    uint256 royalty = ((request.pricePerToken * ROYALTY_FEE) / 10_000) * request.quantity;
+
+    uint256 erc20BalCurrency = erc20.balanceOf(CURRENCY_OWNER);
+    uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
+    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
+
+    bytes32 orderId = test_createOffer(request);
+    bytes32[] memory orderIds = new bytes32[](request.quantity);
+    uint256[] memory quantities = new uint256[](request.quantity);
+
+    for (uint256 i; i < request.quantity; i++) {
+      orderIds[i] = orderId;
+      quantities[i] = 1;
+    }
+
+    vm.prank(TOKEN_OWNER);
+    orderbook.acceptOrderBatch(orderIds, quantities, emptyFees, emptyFeeReceivers);
 
     assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice - royalty);
