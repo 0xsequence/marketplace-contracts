@@ -125,18 +125,22 @@ interface IOrderbookFunctions is IOrderbookStorage {
   /**
    * Checks if an order is valid.
    * @param orderId The ID of the order.
+   * @param quantity The amount of tokens to exchange. 0 is assumed to be the order's available quantity.
    * @return valid The validity of the order.
-   * @notice An order is valid if it is active, has not expired and tokens (currency for offers, tokens for listings) are transferrable.
+   * @return order The order.
+   * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValid(bytes32 orderId) external view returns (bool valid);
+  function isOrderValid(bytes32 orderId, uint256 quantity) external view returns (bool valid, Order memory order);
 
   /**
    * Checks if orders are valid.
    * @param orderIds The IDs of the orders.
+   * @param quantities The amount of tokens to exchange per order. 0 is assumed to be the order's available quantity.
    * @return valid The validities of the orders.
-   * @notice An order is valid if it is active, has not expired and tokens (currency for offers, tokens for listings) are transferrable.
+   * @return orders The orders.
+   * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValidBatch(bytes32[] memory orderIds) external view returns (bool[] memory valid);
+  function isOrderValidBatch(bytes32[] memory orderIds, uint256[] memory quantities) external view returns (bool[] memory valid, Order[] memory orders);
 }
 
 interface IOrderbookSignals {

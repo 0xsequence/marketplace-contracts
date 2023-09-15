@@ -299,32 +299,41 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
   /**
    * Checks if an order is valid.
    * @param orderId The ID of the order.
+   * @param quantity The amount of tokens to exchange. 0 is assumed to be the order's available quantity.
    * @return valid The validity of the order.
-   * @notice An order is valid if it is active, has not expired and tokens (currency for offers, tokens for listings) are transferrable.
+   * @return order The order.
+   * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValid(bytes32 orderId) public view returns (bool valid) {
-    Order memory order = _orders[orderId];
-    valid = order.creator != address(0) && !_isExpired(order);
+  function isOrderValid(bytes32 orderId, uint256 quantity) public view returns (bool valid, Order memory order) {
+    order = _orders[orderId];
+    if (quantity == 0) {
+      // 0 is assumed to be max quantity
+      quantity = order.quantity;
+    }
+    valid = order.creator != address(0) && !_isExpired(order) && quantity <= order.quantity;
     if (valid) {
       if (order.isListing) {
-        valid = _hasApprovedTokens(order.isERC1155, order.tokenContract, order.tokenId, order.quantity, order.creator);
+        valid = _hasApprovedTokens(order.isERC1155, order.tokenContract, order.tokenId, quantity, order.creator);
       } else {
-        valid = _hasApprovedCurrency(order.currency, order.pricePerToken * order.quantity, order.creator);
+        valid = _hasApprovedCurrency(order.currency, order.pricePerToken * quantity, order.creator);
       }
     }
-    return valid;
+    return (valid, order);
   }
 
   /**
    * Checks if orders are valid.
    * @param orderIds The IDs of the orders.
+   * @param quantities The amount of tokens to exchange per order. 0 is assumed to be the order's available quantity.
    * @return valid The validities of the orders.
-   * @notice An order is valid if it is active, has not expired and tokens (currency for offers, tokens for listings) are transferrable.
+   * @return orders The orders.
+   * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValidBatch(bytes32[] memory orderIds) external view returns (bool[] memory valid) {
+  function isOrderValidBatch(bytes32[] memory orderIds, uint256[] memory quantities) external view returns (bool[] memory valid, Order[] memory orders) {
     valid = new bool[](orderIds.length);
+    orders = new Order[](orderIds.length);
     for (uint256 i; i < orderIds.length; i++) {
-      valid[i] = isOrderValid(orderIds[i]);
+      (valid[i], orders[i]) = isOrderValid(orderIds[i], quantities[i]);
     }
   }
 

@@ -1169,8 +1169,8 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     vm.stopPrank();
 
     for (uint256 i; i < orderCount; i++) {
-      if (orderbook.isOrderValid(orderIds[i])) {
-        Order memory order = orderbook.getOrder(orderIds[i]);
+      (bool valid, Order memory order) = orderbook.isOrderValid(orderIds[i], 0);
+      if (valid) {
         uint256 orderQuantity = order.quantity;
 
         // Check can accept
@@ -1310,7 +1310,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     orderbook.cancelOrderBatch(orderIds);
 
     for (uint256 i; i < orderIds.length; i++) {
-      Order memory order = orderbook.getOrder(orderIds[i]);
+      (bool valid, Order memory order) = orderbook.isOrderValid(orderIds[i], 0);
       assertEq(order.creator, address(0));
       assertEq(order.tokenContract, address(0));
       assertEq(order.tokenId, 0);
@@ -1318,7 +1318,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
       assertEq(order.currency, address(0));
       assertEq(order.pricePerToken, 0);
       assertEq(order.expiry, 0);
-      assertEq(orderbook.isOrderValid(orderIds[i]), false);
+      assertEq(valid, false);
     }
   }
 
@@ -1341,7 +1341,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
   }
 
   //
-  // isValid
+  // Validity
   //
   function test_isOrderValid_expired() external {
     OrderRequest memory request = OrderRequest({
@@ -1356,6 +1356,8 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     });
 
     bytes32[] memory orderIds = new bytes32[](4);
+    uint256[] memory quantities = new uint256[](4);
+
     orderIds[0] = test_createListing(request);
 
     request.isERC1155 = false;
@@ -1371,7 +1373,8 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
 
     vm.warp(request.expiry + 5);
 
-    bool[] memory valid = orderbook.isOrderValidBatch(orderIds);
+    bool[] memory valid;
+    (valid,) = orderbook.isOrderValidBatch(orderIds, quantities);
     for (uint256 i; i < 4; i++) {
       assertEq(valid[i], false);
     }
@@ -1390,6 +1393,8 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     });
 
     bytes32[] memory orderIds = new bytes32[](4);
+    uint256[] memory quantities = new uint256[](4);
+
     orderIds[0] = test_createListing(request);
 
     request.isERC1155 = false;
@@ -1410,9 +1415,40 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     vm.prank(CURRENCY_OWNER);
     erc20.approve(address(orderbook), 0);
 
-    bool[] memory valid = orderbook.isOrderValidBatch(orderIds);
+    (bool[] memory valid,) = orderbook.isOrderValidBatch(orderIds, quantities);
     for (uint256 i; i < 4; i++) {
       assertEq(valid[i], false);
+    }
+  }
+
+  function test_isOrderValid_partialValidity() external {
+    OrderRequest memory request = OrderRequest({
+      isListing: false,
+      isERC1155: true,
+      tokenContract: address(erc1155),
+      tokenId: TOKEN_ID,
+      quantity: 100,
+      currency: address(erc20),
+      pricePerToken: 1 ether,
+      expiry: uint96(block.timestamp + 1)
+    });
+
+    vm.prank(CURRENCY_OWNER);
+    bytes32 orderId = orderbook.createOrder(request);
+
+    vm.prank(CURRENCY_OWNER);
+    erc20.approve(address(orderbook), 2 ether);
+
+    (bool valid,) = orderbook.isOrderValid(orderId, 0);
+    assertEq(valid, false);
+    (valid,) = orderbook.isOrderValid(orderId, 1);
+    assertEq(valid, true);
+    (valid,) = orderbook.isOrderValid(orderId, 2);
+    assertEq(valid, true);
+    for (uint256 i = 3; i < 15; i++) {
+      // Invalid due to approval or over quantity
+      (valid,) = orderbook.isOrderValid(orderId, i);
+      assertEq(valid, false);
     }
   }
 
@@ -1429,6 +1465,8 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     });
 
     bytes32[] memory orderIds = new bytes32[](4);
+    uint256[] memory quantities = new uint256[](4);
+
     orderIds[0] = test_createListing(request);
 
     request.isERC1155 = false;
@@ -1452,7 +1490,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     assertEq(erc20.balanceOf(CURRENCY_OWNER), 0);
     vm.stopPrank();
 
-    bool[] memory valid = orderbook.isOrderValidBatch(orderIds);
+    (bool[] memory valid,) = orderbook.isOrderValidBatch(orderIds, quantities);
     for (uint256 i; i < 4; i++) {
       assertEq(valid[i], false);
     }
@@ -1469,6 +1507,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     uint96 baseExpiry = uint96(block.timestamp + 10);
 
     bytes32[] memory orderIds = new bytes32[](count);
+    uint256[] memory quantities = new uint256[](count);
     for (uint8 i; i < count; i++) {
       OrderRequest memory request = requests[i];
       _fixRequest(request, request.isListing);
@@ -1477,7 +1516,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
       else orderIds[i] = expectValid[i] ? test_createOffer(request) : test_cancelOffer(request);
     }
 
-    bool[] memory valid = orderbook.isOrderValidBatch(orderIds);
+    (bool[] memory valid,) = orderbook.isOrderValidBatch(orderIds, quantities);
     assertEq(valid.length, count);
     for (uint256 i; i < count; i++) {
       assertEq(valid[i], expectValid[i]);
