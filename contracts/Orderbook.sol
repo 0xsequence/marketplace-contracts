@@ -315,7 +315,10 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
       if (order.isListing) {
         valid = _hasApprovedTokens(order.isERC1155, order.tokenContract, order.tokenId, quantity, order.creator);
       } else {
-        valid = _hasApprovedCurrency(order.currency, order.pricePerToken * quantity, order.creator);
+        // Add royalty
+        uint256 cost = order.pricePerToken * quantity;
+        (, uint256 royaltyAmount) = getRoyaltyInfo(order.tokenContract, order.tokenId, cost);
+        valid = _hasApprovedCurrency(order.currency, cost + royaltyAmount, order.creator);
       }
     }
     return (valid, order);

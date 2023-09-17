@@ -1427,7 +1427,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
       isERC1155: true,
       tokenContract: address(erc1155),
       tokenId: TOKEN_ID,
-      quantity: 100,
+      quantity: 10,
       currency: address(erc20),
       pricePerToken: 1 ether,
       expiry: uint96(block.timestamp + 1)
@@ -1439,14 +1439,48 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     vm.prank(CURRENCY_OWNER);
     erc20.approve(address(orderbook), 2 ether);
 
+    erc1155.setFee(0); // Ignore royalty
+
     (bool valid,) = orderbook.isOrderValid(orderId, 0);
-    assertEq(valid, false);
+    assertEq(valid, false); // Not valid for all tokens
+
     (valid,) = orderbook.isOrderValid(orderId, 1);
     assertEq(valid, true);
     (valid,) = orderbook.isOrderValid(orderId, 2);
     assertEq(valid, true);
     for (uint256 i = 3; i < 15; i++) {
       // Invalid due to approval or over quantity
+      (valid,) = orderbook.isOrderValid(orderId, i);
+      assertEq(valid, false);
+    }
+  }
+
+  function test_isOrderValid_royaltyInvalid() external {
+    OrderRequest memory request = OrderRequest({
+      isListing: false,
+      isERC1155: true,
+      tokenContract: address(erc1155),
+      tokenId: TOKEN_ID,
+      quantity: 10,
+      currency: address(erc20),
+      pricePerToken: 1 ether,
+      expiry: uint96(block.timestamp + 1)
+    });
+
+    vm.prank(CURRENCY_OWNER);
+    bytes32 orderId = orderbook.createOrder(request);
+
+    vm.prank(CURRENCY_OWNER);
+    erc20.approve(address(orderbook), request.pricePerToken * request.quantity); // Exact amount
+    erc1155.setFee(10_000); // 100% royalty. Now half will be valid due to royalty fee
+
+    (bool valid,) = orderbook.isOrderValid(orderId, 0);
+    assertEq(valid, false);
+    for (uint256 i = 1; i < 6; i++) {
+      (valid,) = orderbook.isOrderValid(orderId, i);
+      assertEq(valid, true);
+    }
+    for (uint256 i = 6; i < 11; i++) {
       (valid,) = orderbook.isOrderValid(orderId, i);
       assertEq(valid, false);
     }
