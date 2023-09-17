@@ -140,7 +140,10 @@ interface IOrderbookFunctions is IOrderbookStorage {
    * @return orders The orders.
    * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValidBatch(bytes32[] memory orderIds, uint256[] memory quantities) external view returns (bool[] memory valid, Order[] memory orders);
+  function isOrderValidBatch(bytes32[] memory orderIds, uint256[] memory quantities)
+    external
+    view
+    returns (bool[] memory valid, Order[] memory orders);
 }
 
 interface IOrderbookSignals {

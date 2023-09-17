@@ -15,10 +15,7 @@ interface IERC2981 is IERC165 {
    * @return receiver - address of who should be sent the royalty payment
    * @return royaltyAmount - the royalty payment amount for _salePrice
    */
-  function royaltyInfo(
-    uint256 _tokenId,
-    uint256 _salePrice
-  )
+  function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
     external
     view
     returns (address receiver, uint256 royaltyAmount);

@@ -20,10 +20,7 @@ contract ERC1155RoyaltyMock is ERC1155MintBurnMock {
    * @return receiver - address of who should be sent the royalty payment
    * @return royaltyAmount - the royalty payment amount for _salePrice
    */
-  function royaltyInfo(
-    uint256 _tokenId,
-    uint256 _salePrice
-  )
+  function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
     external
     view
     returns (address receiver, uint256 royaltyAmount)
@@ -62,7 +59,9 @@ contract ERC1155RoyaltyMock is ERC1155MintBurnMock {
    */
   function supportsInterface(bytes4 _interfaceID) public view virtual override (ERC1155MintBurnMock) returns (bool) {
     // Should be 0x2a55205a
-    if (_interfaceID == _INTERFACE_ID_ERC2981) return true;
+    if (_interfaceID == _INTERFACE_ID_ERC2981) {
+      return true;
+    }
     return super.supportsInterface(_interfaceID);
   }
 }

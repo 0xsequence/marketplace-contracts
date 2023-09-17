@@ -42,9 +42,13 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     uint256 quantity = request.quantity;
     address tokenContract = request.tokenContract;
 
-    if (request.pricePerToken == 0) revert InvalidPrice();
+    if (request.pricePerToken == 0) {
+      revert InvalidPrice();
+    }
     // solhint-disable-next-line not-rely-on-time
-    if (request.expiry <= block.timestamp) revert InvalidExpiry();
+    if (request.expiry <= block.timestamp) {
+      revert InvalidExpiry();
+    }
 
     if (request.isListing) {
       // Check valid token for listing
@@ -58,7 +62,9 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
         revert InvalidCurrencyApproval(request.currency, total, msg.sender);
       }
       // Check quantity. Covered by _hasApprovedTokens for listings
-      if ((request.isERC1155 && quantity == 0) || (!request.isERC1155 && quantity != 1)) revert InvalidQuantity();
+      if ((request.isERC1155 && quantity == 0) || (!request.isERC1155 && quantity != 1)) {
+        revert InvalidQuantity();
+      }
     }
 
     Order memory order = Order({
@@ -89,7 +95,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
       request.currency,
       request.pricePerToken,
       request.expiry
-    );
+      );
 
     return orderId;
   }
@@ -130,7 +136,9 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     external
     nonReentrant
   {
-    if (orderIds.length != quantities.length) revert InvalidBatchRequest();
+    if (orderIds.length != quantities.length) {
+      revert InvalidBatchRequest();
+    }
 
     for (uint256 i; i < orderIds.length; i++) {
       _acceptOrder(orderIds[i], quantities[i], additionalFees, additionalFeeReceivers);
@@ -157,9 +165,15 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
       // Order cancelled, completed or never existed
       revert InvalidOrderId(orderId);
     }
-    if (quantity == 0 || quantity > order.quantity) revert InvalidQuantity();
-    if (_isExpired(order)) revert InvalidExpiry();
-    if (additionalFees.length != additionalFeeReceivers.length) revert InvalidAdditionalFees();
+    if (quantity == 0 || quantity > order.quantity) {
+      revert InvalidQuantity();
+    }
+    if (_isExpired(order)) {
+      revert InvalidExpiry();
+    }
+    if (additionalFees.length != additionalFeeReceivers.length) {
+      revert InvalidAdditionalFees();
+    }
 
     // Update order state
     if (order.quantity == quantity) {
@@ -195,7 +209,9 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     for (uint256 i; i < additionalFees.length; i++) {
       uint256 fee = additionalFees[i];
       address feeReceiver = additionalFeeReceivers[i];
-      if (feeReceiver == address(0) || fee == 0) revert InvalidAdditionalFees();
+      if (feeReceiver == address(0) || fee == 0) {
+        revert InvalidAdditionalFees();
+      }
       totalFees += fee;
       TransferHelper.safeTransferFrom(order.currency, tokenReceiver, feeReceiver, fee);
     }
@@ -245,7 +261,9 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    */
   function _cancelOrder(bytes32 orderId) internal {
     Order storage order = _orders[orderId];
-    if (order.creator != msg.sender) revert InvalidOrderId(orderId);
+    if (order.creator != msg.sender) {
+      revert InvalidOrderId(orderId);
+    }
     address tokenContract = order.tokenContract;
 
     // Refund some gas
@@ -332,7 +350,11 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * @return orders The orders.
    * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValidBatch(bytes32[] memory orderIds, uint256[] memory quantities) external view returns (bool[] memory valid, Order[] memory orders) {
+  function isOrderValidBatch(bytes32[] memory orderIds, uint256[] memory quantities)
+    external
+    view
+    returns (bool[] memory valid, Order[] memory orders)
+  {
     valid = new bool[](orderIds.length);
     orders = new Order[](orderIds.length);
     for (uint256 i; i < orderIds.length; i++) {
@@ -358,11 +380,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * @return recipient Address that will be able to claim the royalty
    * @return royalty Amount of currency that will be sent to royalty recipient
    */
-  function getRoyaltyInfo(
-    address tokenContract,
-    uint256 tokenId,
-    uint256 cost
-  )
+  function getRoyaltyInfo(address tokenContract, uint256 tokenId, uint256 cost)
     public
     view
     returns (address recipient, uint256 royalty)
@@ -394,13 +412,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * @return isValid True if the token is owned and approved for transfer.
    * @dev Returns false if the token contract is not ERC1155 or ERC721.
    */
-  function _hasApprovedTokens(
-    bool isERC1155,
-    address tokenContract,
-    uint256 tokenId,
-    uint256 quantity,
-    address owner
-  )
+  function _hasApprovedTokens(bool isERC1155, address tokenContract, uint256 tokenId, uint256 quantity, address owner)
     internal
     view
     returns (bool isValid)
