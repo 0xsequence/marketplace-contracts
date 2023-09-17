@@ -62,11 +62,7 @@ cd report && py -m http.server
 
 ### Formatting
 
-Please ensure code is formatted before committing with:
-
-```bash
-forge fmt contracts test script
-```
+Please ensure code is formatted before committing. If you use VSCode, you will be prompted to install the Prettier extension.
 
 ### Docs
 

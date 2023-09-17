@@ -44,13 +44,7 @@ contract ERC1155ReentryAttacker is IERC1155TokenReceiver {
     return IERC1155TokenReceiver.onERC1155Received.selector;
   }
 
-  function onERC1155BatchReceived(
-    address,
-    address,
-    uint256[] calldata,
-    uint256[] calldata,
-    bytes calldata
-  )
+  function onERC1155BatchReceived(address, address, uint256[] calldata, uint256[] calldata, bytes calldata)
     external
     pure
     returns (bytes4)
@@ -144,7 +138,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
       expected.currency,
       expected.pricePerToken,
       expected.expiry
-    );
+      );
     vm.prank(TOKEN_OWNER);
     orderId = orderbook.createOrder(request);
 
@@ -292,8 +286,11 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     vm.prank(CURRENCY_OWNER);
     orderbook.acceptOrder(orderId, request.quantity, emptyFees, emptyFeeReceivers);
 
-    if (request.isERC1155) assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
-    else assertEq(erc721.ownerOf(TOKEN_ID), CURRENCY_OWNER);
+    if (request.isERC1155) {
+      assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
+    } else {
+      assertEq(erc721.ownerOf(TOKEN_ID), CURRENCY_OWNER);
+    }
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice);
     assertEq(erc20.balanceOf(TOKEN_OWNER), erc20BalTokenOwner + totalPrice - royalty);
     assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty);
@@ -333,8 +330,11 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     vm.prank(CURRENCY_OWNER);
     orderbook.acceptOrder(orderId, request.quantity, additionalFees, additionalFeeReceivers);
 
-    if (request.isERC1155) assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
-    else assertEq(erc721.ownerOf(TOKEN_ID), CURRENCY_OWNER);
+    if (request.isERC1155) {
+      assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
+    } else {
+      assertEq(erc721.ownerOf(TOKEN_ID), CURRENCY_OWNER);
+    }
     // Fees paid by taker
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice - totalFees);
     assertEq(erc20.balanceOf(FEE_RECEIVER), totalFees); // Assume no starting value
@@ -391,15 +391,21 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     bytes32 orderId = test_createListing(request);
 
     // >100%
-    if (request.isERC1155) erc1155.setFee(10_001);
-    else erc721.setFee(10_001);
+    if (request.isERC1155) {
+      erc1155.setFee(10_001);
+    } else {
+      erc721.setFee(10_001);
+    }
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(stdError.arithmeticError);
     orderbook.acceptOrder(orderId, 1, emptyFees, emptyFeeReceivers);
 
     // 100% is ok
-    if (request.isERC1155) erc1155.setFee(10_000);
-    else erc721.setFee(10_000);
+    if (request.isERC1155) {
+      erc1155.setFee(10_000);
+    } else {
+      erc721.setFee(10_000);
+    }
     vm.prank(CURRENCY_OWNER);
     orderbook.acceptOrder(orderId, 1, emptyFees, emptyFeeReceivers);
   }
@@ -436,7 +442,9 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
 
     // Cater for rounding error with / 2 * 2
     request.quantity = (request.quantity / 2) * 2;
-    if (request.quantity == 0) request.quantity = 2;
+    if (request.quantity == 0) {
+      request.quantity = 2;
+    }
     uint256 totalPrice = request.pricePerToken * request.quantity;
     uint256 royalty = (totalPrice * ROYALTY_FEE) / 10_000 / 2 * 2;
 
@@ -648,7 +656,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
       expected.currency,
       expected.pricePerToken,
       expected.expiry
-    );
+      );
     vm.prank(CURRENCY_OWNER);
     orderId = orderbook.createOrder(request);
 
@@ -738,8 +746,11 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     vm.prank(TOKEN_OWNER);
     orderbook.acceptOrder(orderId, request.quantity, emptyFees, emptyFeeReceivers);
 
-    if (request.isERC1155) assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
-    else assertEq(erc721.ownerOf(TOKEN_ID), CURRENCY_OWNER);
+    if (request.isERC1155) {
+      assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
+    } else {
+      assertEq(erc721.ownerOf(TOKEN_ID), CURRENCY_OWNER);
+    }
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice - royalty);
     assertEq(erc20.balanceOf(TOKEN_OWNER), erc20BalTokenOwner + totalPrice);
     assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty);
@@ -779,8 +790,11 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     vm.prank(TOKEN_OWNER);
     orderbook.acceptOrder(orderId, request.quantity, additionalFees, additionalFeeReceivers);
 
-    if (request.isERC1155) assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
-    else assertEq(erc721.ownerOf(TOKEN_ID), CURRENCY_OWNER);
+    if (request.isERC1155) {
+      assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
+    } else {
+      assertEq(erc721.ownerOf(TOKEN_ID), CURRENCY_OWNER);
+    }
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice - royalty);
     assertEq(erc20.balanceOf(FEE_RECEIVER), totalFees); // Assume no starting value
     // Fees paid by taker
@@ -837,15 +851,21 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     bytes32 orderId = test_createOffer(request);
 
     // >100%
-    if (request.isERC1155) erc1155.setFee(10_001);
-    else erc721.setFee(10_001);
+    if (request.isERC1155) {
+      erc1155.setFee(10_001);
+    } else {
+      erc721.setFee(10_001);
+    }
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(InvalidRoyalty.selector);
     orderbook.acceptOrder(orderId, 1, emptyFees, emptyFeeReceivers);
 
     // 100% is ok
-    if (request.isERC1155) erc1155.setFee(10_000);
-    else erc721.setFee(10_000);
+    if (request.isERC1155) {
+      erc1155.setFee(10_000);
+    } else {
+      erc721.setFee(10_000);
+    }
     vm.prank(TOKEN_OWNER);
     orderbook.acceptOrder(orderId, 1, emptyFees, emptyFeeReceivers);
   }
@@ -882,7 +902,9 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
 
     // Cater for rounding error with / 2 * 2
     request.quantity = (request.quantity / 2) * 2;
-    if (request.quantity == 0) request.quantity = 2;
+    if (request.quantity == 0) {
+      request.quantity = 2;
+    }
     uint256 totalPrice = request.pricePerToken * request.quantity;
     uint256 royalty = (totalPrice * ROYALTY_FEE) / 10_000 / 2 * 2;
 
@@ -1079,7 +1101,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
         request.currency,
         request.pricePerToken,
         request.expiry
-      );
+        );
     }
 
     vm.prank(TOKEN_OWNER);
@@ -1278,11 +1300,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty2);
   }
 
-  function test_acceptOrderBatch_invalidLengths(
-    uint8 count,
-    OrderRequest[] memory input,
-    uint256[] memory quantities
-  )
+  function test_acceptOrderBatch_invalidLengths(uint8 count, OrderRequest[] memory input, uint256[] memory quantities)
     external
   {
     count = count > 4 ? 4 : count;
@@ -1546,8 +1564,11 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
       OrderRequest memory request = requests[i];
       _fixRequest(request, request.isListing);
       request.expiry = baseExpiry + i; // Prevent collision
-      if (request.isListing) orderIds[i] = expectValid[i] ? test_createListing(request) : test_cancelListing(request);
-      else orderIds[i] = expectValid[i] ? test_createOffer(request) : test_cancelOffer(request);
+      if (request.isListing) {
+        orderIds[i] = expectValid[i] ? test_createListing(request) : test_cancelListing(request);
+      } else {
+        orderIds[i] = expectValid[i] ? test_createOffer(request) : test_cancelOffer(request);
+      }
     }
 
     (bool[] memory valid,) = orderbook.isOrderValidBatch(orderIds, quantities);
@@ -1594,8 +1615,11 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     request.pricePerToken = _bound(request.pricePerToken, 1, 1 ether);
     request.expiry = uint96(_bound(uint256(request.expiry), block.timestamp + 1, type(uint96).max - 100));
 
-    if (request.isERC1155) request.quantity = _bound(request.quantity, 1, TOKEN_QUANTITY);
-    else request.quantity = 1;
+    if (request.isERC1155) {
+      request.quantity = _bound(request.quantity, 1, TOKEN_QUANTITY);
+    } else {
+      request.quantity = 1;
+    }
 
     vm.assume((request.quantity * request.pricePerToken) <= CURRENCY_QUANTITY / 10);
   }
