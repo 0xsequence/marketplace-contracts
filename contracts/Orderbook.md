@@ -80,13 +80,11 @@ Accepts an order.
 
 ```solidity
 function acceptOrder(
-  bytes32 orderId,
-  uint256 quantity,
-  uint256[] memory additionalFees,
-  address[] memory additionalFeeReceivers
-)
-  external
-  nonReentrant;
+    bytes32 orderId,
+    uint256 quantity,
+    uint256[] memory additionalFees,
+    address[] memory additionalFeeReceivers
+) external nonReentrant;
 ```
 **Parameters**
 
@@ -107,13 +105,11 @@ Accepts orders.
 
 ```solidity
 function acceptOrderBatch(
-  bytes32[] memory orderIds,
-  uint256[] memory quantities,
-  uint256[] memory additionalFees,
-  address[] memory additionalFeeReceivers
-)
-  external
-  nonReentrant;
+    bytes32[] memory orderIds,
+    uint256[] memory quantities,
+    uint256[] memory additionalFees,
+    address[] memory additionalFeeReceivers
+) external nonReentrant;
 ```
 **Parameters**
 
@@ -132,12 +128,11 @@ Performs acceptance of an order.
 
 ```solidity
 function _acceptOrder(
-  bytes32 orderId,
-  uint256 quantity,
-  uint256[] memory additionalFees,
-  address[] memory additionalFeeReceivers
-)
-  internal;
+    bytes32 orderId,
+    uint256 quantity,
+    uint256[] memory additionalFees,
+    address[] memory additionalFeeReceivers
+) internal;
 ```
 **Parameters**
 
@@ -261,46 +256,53 @@ function getOrderBatch(bytes32[] memory orderIds) external view returns (Order[]
 
 Checks if an order is valid.
 
-An order is valid if it is active, has not expired and tokens (currency for offers, tokens for listings) are transferrable.
+An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
 
 
 ```solidity
-function isOrderValid(bytes32 orderId) public view returns (bool valid);
+function isOrderValid(bytes32 orderId, uint256 quantity) public view returns (bool valid, Order memory order);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`orderId`|`bytes32`|The ID of the order.|
+|`quantity`|`uint256`|The amount of tokens to exchange. 0 is assumed to be the order's available quantity.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`valid`|`bool`|The validity of the order.|
+|`order`|`Order`|The order.|
 
 
 ### isOrderValidBatch
 
 Checks if orders are valid.
 
-An order is valid if it is active, has not expired and tokens (currency for offers, tokens for listings) are transferrable.
+An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
 
 
 ```solidity
-function isOrderValidBatch(bytes32[] memory orderIds) external view returns (bool[] memory valid);
+function isOrderValidBatch(bytes32[] memory orderIds, uint256[] memory quantities)
+    external
+    view
+    returns (bool[] memory valid, Order[] memory orders);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`orderIds`|`bytes32[]`|The IDs of the orders.|
+|`quantities`|`uint256[]`|The amount of tokens to exchange per order. 0 is assumed to be the order's available quantity.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`valid`|`bool[]`|The validities of the orders.|
+|`orders`|`Order[]`|The orders.|
 
 
 ### _isExpired
@@ -330,14 +332,10 @@ Will return how much of currency need to be paid for the royalty.
 
 
 ```solidity
-function getRoyaltyInfo(
-  address tokenContract,
-  uint256 tokenId,
-  uint256 cost
-)
-  public
-  view
-  returns (address recipient, uint256 royalty);
+function getRoyaltyInfo(address tokenContract, uint256 tokenId, uint256 cost)
+    public
+    view
+    returns (address recipient, uint256 royalty);
 ```
 **Parameters**
 
@@ -386,16 +384,10 @@ Checks if a token contract is ERC1155 or ERC721 and if the token is owned and ap
 
 
 ```solidity
-function _hasApprovedTokens(
-  bool isERC1155,
-  address tokenContract,
-  uint256 tokenId,
-  uint256 quantity,
-  address owner
-)
-  internal
-  view
-  returns (bool isValid);
+function _hasApprovedTokens(bool isERC1155, address tokenContract, uint256 tokenId, uint256 quantity, address owner)
+    internal
+    view
+    returns (bool isValid);
 ```
 **Parameters**
 

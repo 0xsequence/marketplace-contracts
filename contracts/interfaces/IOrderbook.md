@@ -8,16 +8,29 @@ Order request parameters.
 
 ```solidity
 struct OrderRequest {
-  bool isListing;
-  bool isERC1155;
-  address tokenContract;
-  uint256 tokenId;
-  uint256 quantity;
-  uint96 expiry;
-  address currency;
-  uint256 pricePerToken;
+    bool isListing;
+    bool isERC1155;
+    address tokenContract;
+    uint256 tokenId;
+    uint256 quantity;
+    uint96 expiry;
+    address currency;
+    uint256 pricePerToken;
 }
 ```
+
+**Properties**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`isListing`|`bool`|True if the order is a listing, false if it is an offer.|
+|`isERC1155`|`bool`|True if the token is an ERC1155 token, false if it is an ERC721 token.|
+|`tokenContract`|`address`|The address of the token contract.|
+|`tokenId`|`uint256`|The ID of the token.|
+|`quantity`|`uint256`|The quantity of tokens.|
+|`expiry`|`uint96`|The expiry of the order.|
+|`currency`|`address`|The address of the currency.|
+|`pricePerToken`|`uint256`|The price per token, including royalty fees.|
 
 ### Order
 Order parameters.
@@ -25,17 +38,31 @@ Order parameters.
 
 ```solidity
 struct Order {
-  address creator;
-  bool isListing;
-  bool isERC1155;
-  address tokenContract;
-  uint256 tokenId;
-  uint256 quantity;
-  uint96 expiry;
-  address currency;
-  uint256 pricePerToken;
+    address creator;
+    bool isListing;
+    bool isERC1155;
+    address tokenContract;
+    uint256 tokenId;
+    uint256 quantity;
+    uint96 expiry;
+    address currency;
+    uint256 pricePerToken;
 }
 ```
+
+**Properties**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`creator`|`address`|The address of the order creator.|
+|`isListing`|`bool`|True if the order is a listing, false if it is an offer.|
+|`isERC1155`|`bool`|True if the token is an ERC1155 token, false if it is an ERC721 token.|
+|`tokenContract`|`address`|The address of the token contract.|
+|`tokenId`|`uint256`|The ID of the token.|
+|`quantity`|`uint256`|The quantity of tokens.|
+|`expiry`|`uint96`|The expiry of the order.|
+|`currency`|`address`|The address of the currency.|
+|`pricePerToken`|`uint256`|The price per token, including royalty fees.|
 
 
 ## Functions
@@ -92,12 +119,11 @@ Accepts an order.
 
 ```solidity
 function acceptOrder(
-  bytes32 orderId,
-  uint256 quantity,
-  uint256[] memory additionalFees,
-  address[] memory additionalFeeReceivers
-)
-  external;
+    bytes32 orderId,
+    uint256 quantity,
+    uint256[] memory additionalFees,
+    address[] memory additionalFeeReceivers
+) external;
 ```
 **Parameters**
 
@@ -116,12 +142,11 @@ Accepts orders.
 
 ```solidity
 function acceptOrderBatch(
-  bytes32[] memory orderIds,
-  uint256[] memory quantities,
-  uint256[] memory additionalFees,
-  address[] memory additionalFeeReceivers
-)
-  external;
+    bytes32[] memory orderIds,
+    uint256[] memory quantities,
+    uint256[] memory additionalFees,
+    address[] memory additionalFeeReceivers
+) external;
 ```
 **Parameters**
 
@@ -209,46 +234,53 @@ function getOrderBatch(bytes32[] memory orderIds) external view returns (Order[]
 
 Checks if an order is valid.
 
-An order is valid if it is active, has not expired and tokens (currency for offers, tokens for listings) are transferrable.
+An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
 
 
 ```solidity
-function isOrderValid(bytes32 orderId) external view returns (bool valid);
+function isOrderValid(bytes32 orderId, uint256 quantity) external view returns (bool valid, Order memory order);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`orderId`|`bytes32`|The ID of the order.|
+|`quantity`|`uint256`|The amount of tokens to exchange. 0 is assumed to be the order's available quantity.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`valid`|`bool`|The validity of the order.|
+|`order`|`Order`|The order.|
 
 
 ### isOrderValidBatch
 
 Checks if orders are valid.
 
-An order is valid if it is active, has not expired and tokens (currency for offers, tokens for listings) are transferrable.
+An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
 
 
 ```solidity
-function isOrderValidBatch(bytes32[] memory orderIds) external view returns (bool[] memory valid);
+function isOrderValidBatch(bytes32[] memory orderIds, uint256[] memory quantities)
+    external
+    view
+    returns (bool[] memory valid, Order[] memory orders);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`orderIds`|`bytes32[]`|The IDs of the orders.|
+|`quantities`|`uint256[]`|The amount of tokens to exchange per order. 0 is assumed to be the order's available quantity.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`valid`|`bool[]`|The validities of the orders.|
+|`orders`|`Order[]`|The orders.|
 
 
 
@@ -259,14 +291,15 @@ Emitted when an Order is created.
 
 ```solidity
 event OrderCreated(
-  bytes32 indexed orderId,
-  address indexed tokenContract,
-  uint256 indexed tokenId,
-  bool isListing,
-  uint256 quantity,
-  address currency,
-  uint256 pricePerToken,
-  uint256 expiry
+    bytes32 indexed orderId,
+    address indexed creator,
+    address indexed tokenContract,
+    uint256 tokenId,
+    bool isListing,
+    uint256 quantity,
+    address currency,
+    uint256 pricePerToken,
+    uint256 expiry
 );
 ```
 
@@ -276,11 +309,11 @@ Emitted when an Order is accepted.
 
 ```solidity
 event OrderAccepted(
-  bytes32 indexed orderId,
-  address indexed buyer,
-  address indexed tokenContract,
-  uint256 quantity,
-  uint256 quantityRemaining
+    bytes32 indexed orderId,
+    address indexed buyer,
+    address indexed tokenContract,
+    uint256 quantity,
+    uint256 quantityRemaining
 );
 ```
 
