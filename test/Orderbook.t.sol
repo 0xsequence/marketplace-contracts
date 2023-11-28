@@ -131,6 +131,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     vm.expectEmit(true, true, true, true, address(orderbook));
     emit OrderCreated(
       orderbook.hashOrder(expected),
+      TOKEN_OWNER,
       expected.tokenContract,
       expected.tokenId,
       expected.isListing,
@@ -143,6 +144,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     orderId = orderbook.createOrder(request);
 
     Order memory listing = orderbook.getOrder(orderId);
+    assertEq(listing.creator, expected.creator);
     assertEq(listing.isListing, expected.isListing);
     assertEq(listing.isERC1155, expected.isERC1155);
     assertEq(listing.creator, expected.creator);
@@ -649,6 +651,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     vm.expectEmit(true, true, true, true, address(orderbook));
     emit OrderCreated(
       orderbook.hashOrder(expected),
+      CURRENCY_OWNER,
       expected.tokenContract,
       expected.tokenId,
       expected.isListing,
@@ -661,6 +664,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     orderId = orderbook.createOrder(request);
 
     Order memory offer = orderbook.getOrder(orderId);
+    assertEq(offer.creator, expected.creator);
     assertEq(offer.isListing, expected.isListing);
     assertEq(offer.isERC1155, expected.isERC1155);
     assertEq(offer.creator, expected.creator);
@@ -1094,6 +1098,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
       OrderRequest memory request = requests[i];
       emit OrderCreated(
         _hashOrderRequest(request, TOKEN_OWNER),
+        TOKEN_OWNER,
         request.tokenContract,
         request.tokenId,
         request.isListing,

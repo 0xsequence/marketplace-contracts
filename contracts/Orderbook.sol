@@ -88,6 +88,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
 
     emit OrderCreated(
       orderId,
+      msg.sender,
       tokenContract,
       request.tokenId,
       request.isListing,

@@ -154,8 +154,9 @@ interface IOrderbookSignals {
   /// Emitted when an Order is created.
   event OrderCreated(
     bytes32 indexed orderId,
+    address indexed creator,
     address indexed tokenContract,
-    uint256 indexed tokenId,
+    uint256 tokenId,
     bool isListing,
     uint256 quantity,
     address currency,
