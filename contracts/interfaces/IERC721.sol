@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity 0.8.20;
+pragma solidity 0.8.19;
 
 interface IERC721 {
   event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);

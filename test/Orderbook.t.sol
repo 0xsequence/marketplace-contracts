@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity 0.8.20;
+pragma solidity 0.8.19;
 
 import {Orderbook} from "contracts/Orderbook.sol";
 import {IOrderbookSignals, IOrderbookStorage} from "contracts/interfaces/IOrderbook.sol";
@@ -8,8 +8,7 @@ import {ERC1155RoyaltyMock} from "./mocks/ERC1155RoyaltyMock.sol";
 import {ERC721RoyaltyMock} from "./mocks/ERC721RoyaltyMock.sol";
 import {ERC20TokenMock} from "./mocks/ERC20TokenMock.sol";
 import {IERC1155TokenReceiver} from "0xsequence/erc-1155/src/contracts/interfaces/IERC1155TokenReceiver.sol";
-import {IERC721Errors} from "openzeppelin/contracts/interfaces/draft-IERC6093.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import {Test, console, stdError} from "forge-std/Test.sol";
 
@@ -53,7 +52,7 @@ contract ERC1155ReentryAttacker is IERC1155TokenReceiver {
   }
 }
 
-contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, ReentrancyGuard, Test {
+contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard, Test {
   Orderbook private orderbook;
   ERC1155RoyaltyMock private erc1155;
   ERC721RoyaltyMock private erc721;
@@ -532,7 +531,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     erc721.transferFrom(TOKEN_OWNER, CURRENCY_OWNER, TOKEN_ID);
 
     vm.prank(CURRENCY_OWNER);
-    vm.expectRevert(abi.encodeWithSelector(ERC721InsufficientApproval.selector, address(orderbook), TOKEN_ID));
+    vm.expectRevert("ERC721: caller is not token owner or approved");
     orderbook.acceptOrder(orderId, 1, emptyFees, emptyFeeReceivers);
   }
 
@@ -546,7 +545,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     vm.prank(address(attacker));
     erc20.approve(address(orderbook), CURRENCY_QUANTITY);
 
-    vm.expectRevert(ReentrancyGuardReentrantCall.selector);
+    vm.expectRevert("ReentrancyGuard: reentrant call");
     attacker.acceptListing(orderId, request.quantity);
   }
 
@@ -994,7 +993,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, IERC721Errors, R
     erc721.transferFrom(TOKEN_OWNER, CURRENCY_OWNER, TOKEN_ID);
 
     vm.prank(TOKEN_OWNER);
-    vm.expectRevert(abi.encodeWithSelector(ERC721InsufficientApproval.selector, address(orderbook), TOKEN_ID));
+    vm.expectRevert("ERC721: caller is not token owner or approved");
     orderbook.acceptOrder(orderId, 1, emptyFees, emptyFeeReceivers);
   }
 
