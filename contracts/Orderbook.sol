@@ -232,7 +232,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     if (order.isERC1155) {
       IERC1155(tokenContract).safeTransferFrom(currencyReceiver, tokenReceiver, order.tokenId, quantity, "");
     } else {
-      IERC721(tokenContract).transferFrom(currencyReceiver, tokenReceiver, order.tokenId);
+      IERC721(tokenContract).safeTransferFrom(currencyReceiver, tokenReceiver, order.tokenId);
     }
 
     emit OrderAccepted(orderId, msg.sender, tokenContract, quantity, _orders[orderId].quantity);
