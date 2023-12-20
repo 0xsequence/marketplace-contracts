@@ -17,7 +17,9 @@ The Orderbook contract enables marketplace participants to create and fill listi
 The Orderbook accept partial fills of any order using ERC-1155 tokens.
 
 The Orderbook contract is unowned and does not have any adminstrative functions.
-Any platform is fee to integrate with the Orderbook contract to provide a marketplace for their users.
+Any platform is free to integrate with the Orderbook contract to provide a marketplace for their users.
+
+Note: The Orderbook is designed to support standard ERC-1155, ERC-721 and ERC-20 implementations. Tokens with non-standard implementations (e.g. tokens that take fees on transfer) may not be compatible with the Orderbook contract. Use of a token in the Orderbook does not imply endorsement of the token by the Orderbook.
 
 #### Flow
 
@@ -36,7 +38,6 @@ The Orderbook automatically deducts ERC-2981 royalty payments from the order **c
 Additional fees (e.g. platform fees) can be taken from the **acceptor** of an order by specifying a fee recipient address when accepting an order.
 
 All fees are taken from the ERC-20 token used in the transfer.
-
 
 ## Development
 
