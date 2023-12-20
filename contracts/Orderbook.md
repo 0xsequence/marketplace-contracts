@@ -193,6 +193,8 @@ function _cancelOrder(bytes32 orderId) internal;
 
 Deterministically create the orderId for the given order.
 
+*`order.quantity` is intentionally excluded from the hash to have a consistent result after partial fills.*
+
 
 ```solidity
 function hashOrder(Order memory order) public pure returns (bytes32 orderId);

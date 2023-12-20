@@ -1636,7 +1636,6 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
         request.isERC1155,
         request.tokenContract,
         request.tokenId,
-        request.quantity,
         request.expiry,
         request.currency,
         request.pricePerToken

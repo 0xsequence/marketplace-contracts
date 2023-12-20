@@ -277,6 +277,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * Deterministically create the orderId for the given order.
    * @param order The order.
    * @return orderId The ID of the order.
+   * @dev `order.quantity` is intentionally excluded from the hash to have a consistent result after partial fills.
    */
   function hashOrder(Order memory order) public pure returns (bytes32 orderId) {
     return keccak256(
@@ -286,7 +287,6 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
         order.isERC1155,
         order.tokenContract,
         order.tokenId,
-        order.quantity,
         order.expiry,
         order.currency,
         order.pricePerToken
