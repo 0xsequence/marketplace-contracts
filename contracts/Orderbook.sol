@@ -17,7 +17,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * @param request The requested order's details.
    * @return orderId The ID of the order.
    */
-  function createOrder(OrderRequest memory request) external nonReentrant returns (bytes32 orderId) {
+  function createOrder(OrderRequest calldata request) external nonReentrant returns (bytes32 orderId) {
     return _createOrder(request);
   }
 
@@ -26,7 +26,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * @param requests The requested orders' details.
    * @return orderIds The IDs of the orders.
    */
-  function createOrderBatch(OrderRequest[] memory requests) external nonReentrant returns (bytes32[] memory orderIds) {
+  function createOrderBatch(OrderRequest[] calldata requests) external nonReentrant returns (bytes32[] memory orderIds) {
     orderIds = new bytes32[](requests.length);
     for (uint256 i; i < requests.length; i++) {
       orderIds[i] = _createOrder(requests[i]);
@@ -38,7 +38,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * @param request The requested order's details.
    * @return orderId The ID of the order.
    */
-  function _createOrder(OrderRequest memory request) internal returns (bytes32 orderId) {
+  function _createOrder(OrderRequest calldata request) internal returns (bytes32 orderId) {
     uint256 quantity = request.quantity;
     address tokenContract = request.tokenContract;
 
@@ -111,8 +111,8 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
   function acceptOrder(
     bytes32 orderId,
     uint256 quantity,
-    uint256[] memory additionalFees,
-    address[] memory additionalFeeReceivers
+    uint256[] calldata additionalFees,
+    address[] calldata additionalFeeReceivers
   )
     external
     nonReentrant
@@ -129,10 +129,10 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * @dev Additional fees are applied to each order.
    */
   function acceptOrderBatch(
-    bytes32[] memory orderIds,
-    uint256[] memory quantities,
-    uint256[] memory additionalFees,
-    address[] memory additionalFeeReceivers
+    bytes32[] calldata orderIds,
+    uint256[] calldata quantities,
+    uint256[] calldata additionalFees,
+    address[] calldata additionalFeeReceivers
   )
     external
     nonReentrant
@@ -156,8 +156,8 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
   function _acceptOrder(
     bytes32 orderId,
     uint256 quantity,
-    uint256[] memory additionalFees,
-    address[] memory additionalFeeReceivers
+    uint256[] calldata additionalFees,
+    address[] calldata additionalFeeReceivers
   )
     internal
   {
@@ -250,7 +250,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * Cancels orders.
    * @param orderIds The IDs of the orders.
    */
-  function cancelOrderBatch(bytes32[] memory orderIds) external nonReentrant {
+  function cancelOrderBatch(bytes32[] calldata orderIds) external nonReentrant {
     for (uint256 i; i < orderIds.length; i++) {
       _cancelOrder(orderIds[i]);
     }
@@ -308,7 +308,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * @param orderIds The IDs of the orders.
    * @return orders The orders.
    */
-  function getOrderBatch(bytes32[] memory orderIds) external view returns (Order[] memory orders) {
+  function getOrderBatch(bytes32[] calldata orderIds) external view returns (Order[] memory orders) {
     orders = new Order[](orderIds.length);
     for (uint256 i; i < orderIds.length; i++) {
       orders[i] = _orders[orderIds[i]];
@@ -351,7 +351,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * @return orders The orders.
    * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValidBatch(bytes32[] memory orderIds, uint256[] memory quantities)
+  function isOrderValidBatch(bytes32[] calldata orderIds, uint256[] calldata quantities)
     external
     view
     returns (bool[] memory valid, Order[] memory orders)

@@ -76,7 +76,7 @@ An offer is when the maker is buying tokens with currency.
 
 
 ```solidity
-function createOrder(OrderRequest memory request) external returns (bytes32 orderId);
+function createOrder(OrderRequest calldata request) external returns (bytes32 orderId);
 ```
 **Parameters**
 
@@ -97,7 +97,7 @@ Creates orders.
 
 
 ```solidity
-function createOrderBatch(OrderRequest[] memory requests) external returns (bytes32[] memory orderIds);
+function createOrderBatch(OrderRequest[] calldata requests) external returns (bytes32[] memory orderIds);
 ```
 **Parameters**
 
@@ -121,8 +121,8 @@ Accepts an order.
 function acceptOrder(
     bytes32 orderId,
     uint256 quantity,
-    uint256[] memory additionalFees,
-    address[] memory additionalFeeReceivers
+    uint256[] calldata additionalFees,
+    address[] calldata additionalFeeReceivers
 ) external;
 ```
 **Parameters**
@@ -142,10 +142,10 @@ Accepts orders.
 
 ```solidity
 function acceptOrderBatch(
-    bytes32[] memory orderIds,
-    uint256[] memory quantities,
-    uint256[] memory additionalFees,
-    address[] memory additionalFeeReceivers
+    bytes32[] calldata orderIds,
+    uint256[] calldata quantities,
+    uint256[] calldata additionalFees,
+    address[] calldata additionalFeeReceivers
 ) external;
 ```
 **Parameters**
@@ -179,7 +179,7 @@ Cancels orders.
 
 
 ```solidity
-function cancelOrderBatch(bytes32[] memory orderIds) external;
+function cancelOrderBatch(bytes32[] calldata orderIds) external;
 ```
 **Parameters**
 
@@ -215,7 +215,7 @@ Gets orders.
 
 
 ```solidity
-function getOrderBatch(bytes32[] memory orderIds) external view returns (Order[] memory orders);
+function getOrderBatch(bytes32[] calldata orderIds) external view returns (Order[] memory orders);
 ```
 **Parameters**
 
@@ -263,7 +263,7 @@ An order is valid if it is active, has not expired and give amount of tokens (cu
 
 
 ```solidity
-function isOrderValidBatch(bytes32[] memory orderIds, uint256[] memory quantities)
+function isOrderValidBatch(bytes32[] calldata orderIds, uint256[] calldata quantities)
     external
     view
     returns (bool[] memory valid, Order[] memory orders);

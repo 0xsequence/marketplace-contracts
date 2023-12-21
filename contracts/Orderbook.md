@@ -16,7 +16,7 @@ Creates an order.
 
 
 ```solidity
-function createOrder(OrderRequest memory request) external nonReentrant returns (bytes32 orderId);
+function createOrder(OrderRequest calldata request) external nonReentrant returns (bytes32 orderId);
 ```
 **Parameters**
 
@@ -37,7 +37,7 @@ Creates orders.
 
 
 ```solidity
-function createOrderBatch(OrderRequest[] memory requests) external nonReentrant returns (bytes32[] memory orderIds);
+function createOrderBatch(OrderRequest[] calldata requests) external nonReentrant returns (bytes32[] memory orderIds);
 ```
 **Parameters**
 
@@ -58,7 +58,7 @@ Performs creation of an order.
 
 
 ```solidity
-function _createOrder(OrderRequest memory request) internal returns (bytes32 orderId);
+function _createOrder(OrderRequest calldata request) internal returns (bytes32 orderId);
 ```
 **Parameters**
 
@@ -82,8 +82,8 @@ Accepts an order.
 function acceptOrder(
     bytes32 orderId,
     uint256 quantity,
-    uint256[] memory additionalFees,
-    address[] memory additionalFeeReceivers
+    uint256[] calldata additionalFees,
+    address[] calldata additionalFeeReceivers
 ) external nonReentrant;
 ```
 **Parameters**
@@ -105,10 +105,10 @@ Accepts orders.
 
 ```solidity
 function acceptOrderBatch(
-    bytes32[] memory orderIds,
-    uint256[] memory quantities,
-    uint256[] memory additionalFees,
-    address[] memory additionalFeeReceivers
+    bytes32[] calldata orderIds,
+    uint256[] calldata quantities,
+    uint256[] calldata additionalFees,
+    address[] calldata additionalFeeReceivers
 ) external nonReentrant;
 ```
 **Parameters**
@@ -130,8 +130,8 @@ Performs acceptance of an order.
 function _acceptOrder(
     bytes32 orderId,
     uint256 quantity,
-    uint256[] memory additionalFees,
-    address[] memory additionalFeeReceivers
+    uint256[] calldata additionalFees,
+    address[] calldata additionalFeeReceivers
 ) internal;
 ```
 **Parameters**
@@ -165,7 +165,7 @@ Cancels orders.
 
 
 ```solidity
-function cancelOrderBatch(bytes32[] memory orderIds) external nonReentrant;
+function cancelOrderBatch(bytes32[] calldata orderIds) external nonReentrant;
 ```
 **Parameters**
 
@@ -239,7 +239,7 @@ Gets orders.
 
 
 ```solidity
-function getOrderBatch(bytes32[] memory orderIds) external view returns (Order[] memory orders);
+function getOrderBatch(bytes32[] calldata orderIds) external view returns (Order[] memory orders);
 ```
 **Parameters**
 
@@ -287,7 +287,7 @@ An order is valid if it is active, has not expired and give amount of tokens (cu
 
 
 ```solidity
-function isOrderValidBatch(bytes32[] memory orderIds, uint256[] memory quantities)
+function isOrderValidBatch(bytes32[] calldata orderIds, uint256[] calldata quantities)
     external
     view
     returns (bool[] memory valid, Order[] memory orders);

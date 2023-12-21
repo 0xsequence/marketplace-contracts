@@ -57,14 +57,14 @@ interface IOrderbookFunctions is IOrderbookStorage {
    * @notice A listing is when the maker is selling tokens for currency.
    * @notice An offer is when the maker is buying tokens with currency.
    */
-  function createOrder(OrderRequest memory request) external returns (bytes32 orderId);
+  function createOrder(OrderRequest calldata request) external returns (bytes32 orderId);
 
   /**
    * Creates orders.
    * @param requests The requested orders' details.
    * @return orderIds The IDs of the orders.
    */
-  function createOrderBatch(OrderRequest[] memory requests) external returns (bytes32[] memory orderIds);
+  function createOrderBatch(OrderRequest[] calldata requests) external returns (bytes32[] memory orderIds);
 
   /**
    * Accepts an order.
@@ -76,8 +76,8 @@ interface IOrderbookFunctions is IOrderbookStorage {
   function acceptOrder(
     bytes32 orderId,
     uint256 quantity,
-    uint256[] memory additionalFees,
-    address[] memory additionalFeeReceivers
+    uint256[] calldata additionalFees,
+    address[] calldata additionalFeeReceivers
   )
     external;
 
@@ -89,10 +89,10 @@ interface IOrderbookFunctions is IOrderbookStorage {
    * @param additionalFeeReceivers The addresses to send the additional fees to.
    */
   function acceptOrderBatch(
-    bytes32[] memory orderIds,
-    uint256[] memory quantities,
-    uint256[] memory additionalFees,
-    address[] memory additionalFeeReceivers
+    bytes32[] calldata orderIds,
+    uint256[] calldata quantities,
+    uint256[] calldata additionalFees,
+    address[] calldata additionalFeeReceivers
   )
     external;
 
@@ -106,7 +106,7 @@ interface IOrderbookFunctions is IOrderbookStorage {
    * Cancels orders.
    * @param orderIds The IDs of the orders.
    */
-  function cancelOrderBatch(bytes32[] memory orderIds) external;
+  function cancelOrderBatch(bytes32[] calldata orderIds) external;
 
   /**
    * Gets an order.
@@ -120,7 +120,7 @@ interface IOrderbookFunctions is IOrderbookStorage {
    * @param orderIds The IDs of the orders.
    * @return orders The orders.
    */
-  function getOrderBatch(bytes32[] memory orderIds) external view returns (Order[] memory orders);
+  function getOrderBatch(bytes32[] calldata orderIds) external view returns (Order[] memory orders);
 
   /**
    * Checks if an order is valid.
@@ -140,7 +140,7 @@ interface IOrderbookFunctions is IOrderbookStorage {
    * @return orders The orders.
    * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValidBatch(bytes32[] memory orderIds, uint256[] memory quantities)
+  function isOrderValidBatch(bytes32[] calldata orderIds, uint256[] calldata quantities)
     external
     view
     returns (bool[] memory valid, Order[] memory orders);
