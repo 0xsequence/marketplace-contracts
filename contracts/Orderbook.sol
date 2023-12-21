@@ -27,8 +27,9 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * @return orderIds The IDs of the orders.
    */
   function createOrderBatch(OrderRequest[] calldata requests) external nonReentrant returns (bytes32[] memory orderIds) {
-    orderIds = new bytes32[](requests.length);
-    for (uint256 i; i < requests.length; i++) {
+    uint256 len = requests.length;
+    orderIds = new bytes32[](len);
+    for (uint256 i; i < len; i++) {
       orderIds[i] = _createOrder(requests[i]);
     }
   }
@@ -137,11 +138,12 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     external
     nonReentrant
   {
-    if (orderIds.length != quantities.length) {
+    uint256 len = orderIds.length;
+    if (len != quantities.length) {
       revert InvalidBatchRequest();
     }
 
-    for (uint256 i; i < orderIds.length; i++) {
+    for (uint256 i; i < len; i++) {
       _acceptOrder(orderIds[i], quantities[i], additionalFees, additionalFeeReceivers);
     }
   }
@@ -309,8 +311,9 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * @return orders The orders.
    */
   function getOrderBatch(bytes32[] calldata orderIds) external view returns (Order[] memory orders) {
-    orders = new Order[](orderIds.length);
-    for (uint256 i; i < orderIds.length; i++) {
+    uint256 len = orderIds.length;
+    orders = new Order[](len);
+    for (uint256 i; i < len; i++) {
       orders[i] = _orders[orderIds[i]];
     }
   }
@@ -356,9 +359,10 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     view
     returns (bool[] memory valid, Order[] memory orders)
   {
-    valid = new bool[](orderIds.length);
-    orders = new Order[](orderIds.length);
-    for (uint256 i; i < orderIds.length; i++) {
+    uint256 len = orderIds.length;
+    valid = new bool[](len);
+    orders = new Order[](len);
+    for (uint256 i; i < len; i++) {
       (valid[i], orders[i]) = isOrderValid(orderIds[i], quantities[i]);
     }
   }
