@@ -57,8 +57,11 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
         revert InvalidTokenApproval(tokenContract, request.tokenId, quantity, msg.sender);
       }
     } else {
-      // Check approved currency for offer
+      // Check approved currency for offer inc royalty
       uint256 total = quantity * request.pricePerToken;
+      (, uint256 royaltyAmount) = getRoyaltyInfo(tokenContract, request.tokenId, total);
+      total += royaltyAmount;
+      getRoyaltyInfo(tokenContract, request.tokenId, total);
       if (!_hasApprovedCurrency(request.currency, total, msg.sender)) {
         revert InvalidCurrencyApproval(request.currency, total, msg.sender);
       }

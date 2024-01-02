@@ -717,13 +717,17 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   function test_createOffer_invalidApproval(OrderRequest memory request) external {
     _fixRequest(request, false);
 
+    uint256 total = request.pricePerToken * request.quantity;
+    uint256 royalty = (total * ROYALTY_FEE) / 10_000;
+    total += royalty;
+
     vm.prank(CURRENCY_OWNER);
-    erc20.approve(address(orderbook), 0);
+    erc20.approve(address(orderbook), total - 1);
 
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(
       abi.encodeWithSelector(
-        InvalidCurrencyApproval.selector, request.currency, request.pricePerToken * request.quantity, CURRENCY_OWNER
+        InvalidCurrencyApproval.selector, request.currency, total, CURRENCY_OWNER
       )
     );
     orderbook.createOrder(request);
