@@ -7,3 +7,6 @@ solc = "0.8.19"
 optimizer = true
 optimizer-runs = 200
 via_ir = true
+
+[fmt]
+tab_width = 2

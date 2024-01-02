@@ -10,6 +10,11 @@ import {ERC20TokenMock} from "./mocks/ERC20TokenMock.sol";
 import {IERC1155TokenReceiver} from "0xsequence/erc-1155/src/contracts/interfaces/IERC1155TokenReceiver.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
+import {IERC721} from "contracts/interfaces/IERC721.sol";
+import {IERC20} from "@0xsequence/erc-1155/contracts/interfaces/IERC20.sol";
+import {IERC165} from "@0xsequence/erc-1155/contracts/interfaces/IERC165.sol";
+import {IERC1155} from "@0xsequence/erc-1155/contracts/interfaces/IERC1155.sol";
+
 import {Test, console, stdError} from "forge-std/Test.sol";
 
 // solhint-disable not-rely-on-time
@@ -108,6 +113,38 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   }
 
   //
+  // Common Create Order
+  //
+  function test_createOrder_interfaceInvalid(OrderRequest memory request, bool brokenToken, address invalidAddr)
+    external
+  {
+    _assumeNotPrecompile(invalidAddr);
+    bool isERC1155 = request.isERC1155;
+    _fixRequest(request, isERC1155);
+
+    bytes4 expectedInterface;
+
+    if (brokenToken) {
+      request.tokenContract = invalidAddr;
+      expectedInterface = isERC1155 ? type(IERC1155).interfaceId : type(IERC721).interfaceId;
+    } else {
+      request.currency = invalidAddr;
+      expectedInterface = type(IERC20).interfaceId;
+    }
+
+    // Must NOT support interface
+    if (invalidAddr.code.length != 0) {
+      try IERC165(invalidAddr).supportsInterface(expectedInterface) returns (bool result) {
+        vm.assume(!result);
+      } catch {}
+    }
+
+    vm.prank(TOKEN_OWNER);
+    vm.expectRevert(abi.encodeWithSelector(UnsupportedContractInterface.selector, invalidAddr, expectedInterface));
+    orderbook.createOrder(request);
+  }
+
+  //
   // Create Listing
   //
 
@@ -138,7 +175,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
       expected.currency,
       expected.pricePerToken,
       expected.expiry
-      );
+    );
     vm.prank(TOKEN_OWNER);
     orderId = orderbook.createOrder(request);
 
@@ -167,7 +204,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
 
   function test_createListing_invalidToken(OrderRequest memory request, address badContract) external {
     vm.assume(badContract != address(erc1155) && badContract != address(erc721));
-    vm.assume(uint160(badContract) > 10); // Precompile
+    _assumeNotPrecompile(badContract);
     _fixRequest(request, true);
     request.tokenContract = badContract;
 
@@ -658,7 +695,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
       expected.currency,
       expected.pricePerToken,
       expected.expiry
-      );
+    );
     vm.prank(CURRENCY_OWNER);
     orderId = orderbook.createOrder(request);
 
@@ -725,11 +762,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     erc20.approve(address(orderbook), total - 1);
 
     vm.prank(CURRENCY_OWNER);
-    vm.expectRevert(
-      abi.encodeWithSelector(
-        InvalidCurrencyApproval.selector, request.currency, total, CURRENCY_OWNER
-      )
-    );
+    vm.expectRevert(abi.encodeWithSelector(InvalidCurrencyApproval.selector, request.currency, total, CURRENCY_OWNER));
     orderbook.createOrder(request);
   }
 
@@ -1109,7 +1142,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
         request.currency,
         request.pricePerToken,
         request.expiry
-        );
+      );
     }
 
     vm.prank(TOKEN_OWNER);
@@ -1645,5 +1678,11 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
         request.pricePerToken
       )
     );
+  }
+
+  function _assumeNotPrecompile(address addr) internal pure {
+      // vm.assume(addr != address(0));
+      assumeNotPrecompile(addr);
+      assumeNotForgeAddress(addr);
   }
 }

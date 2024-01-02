@@ -5,6 +5,7 @@ import {IOrderbook} from "./interfaces/IOrderbook.sol";
 import {IERC721} from "./interfaces/IERC721.sol";
 import {IERC2981} from "./interfaces/IERC2981.sol";
 import {IERC20} from "@0xsequence/erc-1155/contracts/interfaces/IERC20.sol";
+import {IERC165} from "@0xsequence/erc-1155/contracts/interfaces/IERC165.sol";
 import {IERC1155} from "@0xsequence/erc-1155/contracts/interfaces/IERC1155.sol";
 import {TransferHelper} from "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -50,6 +51,10 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     if (request.expiry <= block.timestamp) {
       revert InvalidExpiry();
     }
+
+    // Check interfaces
+    _requireInterface(tokenContract, request.isERC1155 ? type(IERC1155).interfaceId : type(IERC721).interfaceId);
+    _requireInterface(request.currency, type(IERC20).interfaceId);
 
     if (request.isListing) {
       // Check valid token for listing
@@ -100,7 +105,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
       request.currency,
       request.pricePerToken,
       request.expiry
-      );
+    );
 
     return orderId;
   }
@@ -117,10 +122,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     uint256 quantity,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
-  )
-    external
-    nonReentrant
-  {
+  ) external nonReentrant {
     _acceptOrder(orderId, quantity, additionalFees, additionalFeeReceivers);
   }
 
@@ -137,10 +139,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     uint256[] calldata quantities,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
-  )
-    external
-    nonReentrant
-  {
+  ) external nonReentrant {
     uint256 len = orderIds.length;
     if (len != quantities.length) {
       revert InvalidBatchRequest();
@@ -163,9 +162,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     uint256 quantity,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
-  )
-    internal
-  {
+  ) internal {
     Order memory order = _orders[orderId];
     if (order.creator == address(0)) {
       // Order cancelled, completed or never existed
@@ -447,5 +444,24 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
 
     return quantity == 1 && owner == tokenOwner
       && (operator == orderbook || IERC721(tokenContract).isApprovedForAll(owner, orderbook));
+  }
+
+  /**
+   * Checks if a contract implements an interface.
+   * @param contractAddress The address of the contract.
+   * @param interfaceId The interface ID.
+   * @dev Reverts if the contract does not implement the interface.
+   */
+  function _requireInterface(address contractAddress, bytes4 interfaceId) internal view {
+    if (contractAddress.code.length != 0) {
+      try IERC165(contractAddress).supportsInterface(interfaceId) returns (bool supported) {
+        if (supported) {
+          // Success
+          return;
+        }
+      } catch {}
+    }
+    // Fail over
+    revert UnsupportedContractInterface(contractAddress, interfaceId);
   }
 }

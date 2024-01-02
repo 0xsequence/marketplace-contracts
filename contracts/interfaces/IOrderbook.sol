@@ -78,8 +78,7 @@ interface IOrderbookFunctions is IOrderbookStorage {
     uint256 quantity,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
-  )
-    external;
+  ) external;
 
   /**
    * Accepts orders.
@@ -93,8 +92,7 @@ interface IOrderbookFunctions is IOrderbookStorage {
     uint256[] calldata quantities,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
-  )
-    external;
+  ) external;
 
   /**
    * Cancels an order.
@@ -179,6 +177,9 @@ interface IOrderbookSignals {
   //
   // Errors
   //
+
+  /// Thrown when the contract address does not support the required interface.
+  error UnsupportedContractInterface(address contractAddress, bytes4 interfaceId);
 
   /// Thrown when the token approval is invalid.
   error InvalidTokenApproval(address tokenContract, uint256 tokenId, uint256 quantity, address owner);
