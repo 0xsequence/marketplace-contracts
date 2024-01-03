@@ -3,12 +3,15 @@ pragma solidity 0.8.19;
 
 import {Orderbook} from "contracts/Orderbook.sol";
 import {IOrderbookSignals, IOrderbookStorage} from "contracts/interfaces/IOrderbook.sol";
-import {ERC721Mock} from "./mocks/ERC721Mock.sol";
 import {ERC1155RoyaltyMock} from "./mocks/ERC1155RoyaltyMock.sol";
 import {ERC721RoyaltyMock} from "./mocks/ERC721RoyaltyMock.sol";
 import {ERC20TokenMock} from "./mocks/ERC20TokenMock.sol";
 import {IERC1155TokenReceiver} from "0xsequence/erc-1155/src/contracts/interfaces/IERC1155TokenReceiver.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+import {IERC2981} from "contracts/interfaces/IERC2981.sol";
+import {ERC1155MintBurnMock} from "@0xsequence/erc-1155/contracts/mocks/ERC1155MintBurnMock.sol";
+import {ERC721Mock} from "./mocks/ERC721Mock.sol";
 
 import {IERC721} from "contracts/interfaces/IERC721.sol";
 import {IERC20} from "@0xsequence/erc-1155/contracts/interfaces/IERC20.sol";
@@ -69,6 +72,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
 
   uint256 private constant ROYALTY_FEE = 200; // 2%
 
+  address private constant ORDERBOOK_OWNER = address(uint160(uint256(keccak256("orderbook_owner"))));
   address private constant TOKEN_OWNER = address(uint160(uint256(keccak256("token_owner"))));
   address private constant CURRENCY_OWNER = address(uint160(uint256(keccak256("currency_owner"))));
   address private constant ROYALTY_RECEIVER = address(uint160(uint256(keccak256("royalty_receiver"))));
@@ -78,7 +82,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   address[] private emptyFeeReceivers;
 
   function setUp() external {
-    orderbook = new Orderbook();
+    orderbook = new Orderbook(ORDERBOOK_OWNER);
     erc1155 = new ERC1155RoyaltyMock();
     erc721 = new ERC721RoyaltyMock();
     erc20 = new ERC20TokenMock();
@@ -1630,6 +1634,54 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
 
     assertEq(recipient, address(0));
     assertEq(royalty, 0);
+  }
+
+  function test_getRoyaltyInfo_overridden(bool isERC1155, uint96 fee, address recipient) external {
+    address tokenContract;
+    // These do not support ERC-2981
+    if (isERC1155) {
+      tokenContract = address(new ERC1155MintBurnMock("", ""));
+    } else {
+      tokenContract = address(new ERC721Mock());
+    }
+    fee = uint96(_bound(fee, 1, 10000));
+
+    vm.expectEmit();
+    emit CustomRoyaltyChanged(tokenContract, recipient, fee);
+    vm.prank(ORDERBOOK_OWNER);
+    orderbook.setRoyaltyInfo(tokenContract, recipient, fee);
+
+    (address actualR, uint256 actualF) = orderbook.getRoyaltyInfo(tokenContract, 1, 10000);
+
+    assertEq(actualR, recipient);
+    assertEq(actualF, uint256(fee));
+  }
+
+  function test_getRoyaltyInfo_notOverridden(bool isERC1155, uint96 fee, address recipient) external {
+    // Not overriden when the contract supports ERC-2981
+    address tokenContract = isERC1155 ? address(erc1155) : address(erc721);
+    fee = uint96(_bound(fee, 1, 10000));
+
+    // This still emits
+    vm.expectEmit();
+    emit CustomRoyaltyChanged(tokenContract, recipient, fee);
+    vm.prank(ORDERBOOK_OWNER);
+    orderbook.setRoyaltyInfo(tokenContract, recipient, fee);
+
+    (address actualR, uint256 actualF) = orderbook.getRoyaltyInfo(tokenContract, 1, 10000);
+
+    // Expect token royalty values set above
+    (address expectedR, uint256 expectedF) = IERC2981(tokenContract).royaltyInfo(1, 10000);
+    assertEq(actualR, expectedR);
+    assertEq(actualF, expectedF);
+  }
+
+  function test_setRoyaltyInfo_invalidCaller(address caller, address tokenContract, uint96 fee, address recipient) external {
+    vm.assume(caller != ORDERBOOK_OWNER);
+
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(caller);
+    orderbook.setRoyaltyInfo(tokenContract, recipient, fee);
   }
 
   //

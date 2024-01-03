@@ -16,7 +16,8 @@ The Orderbook contract enables marketplace participants to create and fill listi
 
 The Orderbook accept partial fills of any order using ERC-1155 tokens.
 
-The Orderbook contract is unowned and does not have any adminstrative functions.
+The Orderbook contract has an owner who can set the royalty parameters for any contract that doesn't natively support ERC-2981. There are no other administrative functions.
+
 Any platform is free to integrate with the Orderbook contract to provide a marketplace for their users.
 
 Note: The Orderbook is designed to support standard ERC-1155, ERC-721 and ERC-20 implementations. Tokens with non-standard implementations (e.g. tokens that take fees on transfer) may not be compatible with the Orderbook contract. Use of a token in the Orderbook does not imply endorsement of the token by the Orderbook.

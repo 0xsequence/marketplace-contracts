@@ -47,6 +47,17 @@ interface IOrderbookStorage {
     address currency;
     uint256 pricePerToken;
   }
+
+  /**
+   * Custom royalty parameters.
+   * @param recipient Address to send the fees to.
+   * @param fee Fee percentage with a 10000 basis (e.g. 0.3% is 30 and 1% is 100 and 100% is 10000).
+   * @dev Used to store custom royalty settings for contracts do not support ERC2981.
+   */
+  struct CustomRoyalty {
+    address recipient;
+    uint96 fee;
+  }
 }
 
 interface IOrderbookFunctions is IOrderbookStorage {
@@ -78,7 +89,8 @@ interface IOrderbookFunctions is IOrderbookStorage {
     uint256 quantity,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
-  ) external;
+  )
+    external;
 
   /**
    * Accepts orders.
@@ -92,7 +104,8 @@ interface IOrderbookFunctions is IOrderbookStorage {
     uint256[] calldata quantities,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
-  ) external;
+  )
+    external;
 
   /**
    * Cancels an order.
@@ -173,6 +186,9 @@ interface IOrderbookSignals {
 
   /// Emitted when an Order is cancelled.
   event OrderCancelled(bytes32 indexed orderId, address indexed tokenContract);
+
+  /// Emitted when custom royalty settings are changed.
+  event CustomRoyaltyChanged(address indexed tokenContract, address recipient, uint96 fee);
 
   //
   // Errors

@@ -8,10 +8,16 @@ import {IERC20} from "@0xsequence/erc-1155/contracts/interfaces/IERC20.sol";
 import {IERC165} from "@0xsequence/erc-1155/contracts/interfaces/IERC165.sol";
 import {IERC1155} from "@0xsequence/erc-1155/contracts/interfaces/IERC1155.sol";
 import {TransferHelper} from "@uniswap/lib/contracts/libraries/TransferHelper.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Orderbook is IOrderbook, ReentrancyGuard {
+contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
   mapping(bytes32 => Order) internal _orders;
+  mapping(address => CustomRoyalty) public customRoyalties;
+
+  constructor(address _owner) {
+    _transferOwnership(_owner);
+  }
 
   /**
    * Creates an order.
@@ -105,7 +111,7 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
       request.currency,
       request.pricePerToken,
       request.expiry
-    );
+      );
 
     return orderId;
   }
@@ -122,7 +128,10 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     uint256 quantity,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
-  ) external nonReentrant {
+  )
+    external
+    nonReentrant
+  {
     _acceptOrder(orderId, quantity, additionalFees, additionalFeeReceivers);
   }
 
@@ -139,7 +148,10 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     uint256[] calldata quantities,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
-  ) external nonReentrant {
+  )
+    external
+    nonReentrant
+  {
     uint256 len = orderIds.length;
     if (len != quantities.length) {
       revert InvalidBatchRequest();
@@ -162,7 +174,9 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     uint256 quantity,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
-  ) internal {
+  )
+    internal
+  {
     Order memory order = _orders[orderId];
     if (order.creator == address(0)) {
       // Order cancelled, completed or never existed
@@ -378,6 +392,21 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
   }
 
   /**
+   * Will set the royalties fees and recipient for contracts that don't support ERC-2981
+   * @param recipient Address to send the fees to
+   * @param fee Fee percentage with a 10000 basis (e.g. 0.3% is 30 and 1% is 100 and 100% is 10000)
+   * @dev Can only be called by the owner
+   * @notice This can be called even when the contract supports ERC-2891, but will be ignored if it does
+   */
+  function setRoyaltyInfo(address tokenContract, address recipient, uint96 fee) public onlyOwner {
+    if (fee > 10000) {
+      revert InvalidRoyalty();
+    }
+    customRoyalties[tokenContract] = CustomRoyalty(recipient, fee);
+    emit CustomRoyaltyChanged(tokenContract, recipient, fee);
+  }
+
+  /**
    * Will return how much of currency need to be paid for the royalty.
    * @param tokenContract Address of the erc-1155 token being traded
    * @param tokenId ID of the erc-1155 token being traded
@@ -393,18 +422,21 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
     try IERC2981(address(tokenContract)).royaltyInfo(tokenId, cost) returns (address _r, uint256 _c) {
       return (_r, _c);
     } catch {} // solhint-disable-line no-empty-blocks
-    return (address(0), 0);
+
+    // Fail over to custom royalty
+    CustomRoyalty memory customRoyalty = customRoyalties[tokenContract];
+    return (customRoyalty.recipient, customRoyalty.fee * cost / 10000);
   }
 
   /**
    * Checks if the amount of currency is approved for transfer exceeds the given amount.
    * @param currency The address of the currency.
    * @param amount The amount of currency.
-   * @param owner The address of the owner of the currency.
+   * @param who The address of the owner of the currency.
    * @return isValid True if the amount of currency is sufficient and approved for transfer.
    */
-  function _hasApprovedCurrency(address currency, uint256 amount, address owner) internal view returns (bool isValid) {
-    return IERC20(currency).balanceOf(owner) >= amount && IERC20(currency).allowance(owner, address(this)) >= amount;
+  function _hasApprovedCurrency(address currency, uint256 amount, address who) internal view returns (bool isValid) {
+    return IERC20(currency).balanceOf(who) >= amount && IERC20(currency).allowance(who, address(this)) >= amount;
   }
 
   /**
@@ -413,11 +445,11 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
    * @param tokenContract The address of the token contract.
    * @param tokenId The ID of the token.
    * @param quantity The quantity of tokens to list.
-   * @param owner The address of the owner of the token.
+   * @param who The address of the owner of the token.
    * @return isValid True if the token is owned and approved for transfer.
    * @dev Returns false if the token contract is not ERC1155 or ERC721.
    */
-  function _hasApprovedTokens(bool isERC1155, address tokenContract, uint256 tokenId, uint256 quantity, address owner)
+  function _hasApprovedTokens(bool isERC1155, address tokenContract, uint256 tokenId, uint256 quantity, address who)
     internal
     view
     returns (bool isValid)
@@ -426,8 +458,8 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
 
     if (isERC1155) {
       // ERC1155
-      return quantity > 0 && IERC1155(tokenContract).balanceOf(owner, tokenId) >= quantity
-        && IERC1155(tokenContract).isApprovedForAll(owner, orderbook);
+      return quantity > 0 && IERC1155(tokenContract).balanceOf(who, tokenId) >= quantity
+        && IERC1155(tokenContract).isApprovedForAll(who, orderbook);
     }
 
     // ERC721
@@ -442,8 +474,8 @@ contract Orderbook is IOrderbook, ReentrancyGuard {
       } catch {} // solhint-disable-line no-empty-blocks
     } catch {} // solhint-disable-line no-empty-blocks
 
-    return quantity == 1 && owner == tokenOwner
-      && (operator == orderbook || IERC721(tokenContract).isApprovedForAll(owner, orderbook));
+    return quantity == 1 && who == tokenOwner
+      && (operator == orderbook || IERC721(tokenContract).isApprovedForAll(who, orderbook));
   }
 
   /**
