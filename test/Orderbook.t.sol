@@ -81,6 +81,8 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   uint256[] private emptyFees;
   address[] private emptyFeeReceivers;
 
+  uint256 private expectedNextOrderId;
+
   function setUp() external {
     orderbook = new Orderbook(ORDERBOOK_OWNER);
     erc1155 = new ERC1155RoyaltyMock();
@@ -89,6 +91,8 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
 
     vm.label(TOKEN_OWNER, "token_owner");
     vm.label(CURRENCY_OWNER, "currency_owner");
+
+    expectedNextOrderId = 0;
 
     // Mint tokens
     uint256[] memory tokenIds = new uint256[](1);
@@ -170,7 +174,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
 
     vm.expectEmit(true, true, true, true, address(orderbook));
     emit OrderCreated(
-      orderbook.hashOrder(expected),
+      bytes32(expectedNextOrderId),
       TOKEN_OWNER,
       expected.tokenContract,
       expected.tokenId,
@@ -182,6 +186,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     );
     vm.prank(TOKEN_OWNER);
     orderId = orderbook.createOrder(request);
+    expectedNextOrderId++;
 
     Order memory listing = orderbook.getOrder(orderId);
     assertEq(listing.creator, expected.creator);
@@ -196,14 +201,6 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     assertEq(listing.expiry, expected.expiry);
 
     return orderId;
-  }
-
-  function test_createListing_collision(OrderRequest memory request) external {
-    bytes32 orderId = test_createListing(request);
-
-    vm.prank(TOKEN_OWNER);
-    vm.expectRevert(abi.encodeWithSelector(InvalidOrderId.selector, orderId));
-    orderbook.createOrder(request);
   }
 
   function test_createListing_invalidToken(OrderRequest memory request, address badContract) external {
@@ -690,7 +687,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
 
     vm.expectEmit(true, true, true, true, address(orderbook));
     emit OrderCreated(
-      orderbook.hashOrder(expected),
+      bytes32(expectedNextOrderId),
       CURRENCY_OWNER,
       expected.tokenContract,
       expected.tokenId,
@@ -702,6 +699,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     );
     vm.prank(CURRENCY_OWNER);
     orderId = orderbook.createOrder(request);
+    expectedNextOrderId++;
 
     Order memory offer = orderbook.getOrder(orderId);
     assertEq(offer.creator, expected.creator);
@@ -716,15 +714,6 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     assertEq(offer.expiry, expected.expiry);
 
     return orderId;
-  }
-
-  function test_createOffer_collision(OrderRequest memory request) external {
-    _fixRequest(request, false);
-    bytes32 orderId = test_createOffer(request);
-
-    vm.prank(CURRENCY_OWNER);
-    vm.expectRevert(abi.encodeWithSelector(InvalidOrderId.selector, orderId));
-    orderbook.createOrder(request);
   }
 
   function test_createOffer_invalidExpiry(OrderRequest memory request, uint96 expiry) external {
@@ -1123,7 +1112,6 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     for (uint8 i; i < count; i++) {
       OrderRequest memory request = input[i];
       _fixRequest(request, request.isListing);
-      request.expiry = baseExpiry + i; // Prevent collision
       requests[i] = request;
     }
 
@@ -1137,7 +1125,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
       vm.expectEmit(true, true, true, true, address(orderbook));
       OrderRequest memory request = requests[i];
       emit OrderCreated(
-        _hashOrderRequest(request, TOKEN_OWNER),
+        bytes32(expectedNextOrderId),
         TOKEN_OWNER,
         request.tokenContract,
         request.tokenId,
@@ -1147,6 +1135,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
         request.pricePerToken,
         request.expiry
       );
+      expectedNextOrderId++;
     }
 
     vm.prank(TOKEN_OWNER);
@@ -1608,7 +1597,6 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     for (uint8 i; i < count; i++) {
       OrderRequest memory request = requests[i];
       _fixRequest(request, request.isListing);
-      request.expiry = baseExpiry + i; // Prevent collision
       if (request.isListing) {
         orderIds[i] = expectValid[i] ? test_createListing(request) : test_cancelListing(request);
       } else {
@@ -1715,21 +1703,6 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     }
 
     vm.assume((request.quantity * request.pricePerToken) <= CURRENCY_QUANTITY / 10);
-  }
-
-  function _hashOrderRequest(OrderRequest memory request, address creator) private pure returns (bytes32) {
-    return keccak256(
-      abi.encodePacked(
-        creator,
-        request.isListing,
-        request.isERC1155,
-        request.tokenContract,
-        request.tokenId,
-        request.expiry,
-        request.currency,
-        request.pricePerToken
-      )
-    );
   }
 
   function _assumeNotPrecompile(address addr) internal pure {

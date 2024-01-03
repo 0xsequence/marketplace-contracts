@@ -15,6 +15,8 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
   mapping(bytes32 => Order) internal _orders;
   mapping(address => CustomRoyalty) public customRoyalties;
 
+  uint256 private _nextOrderId;
+
   constructor(address _owner) {
     _transferOwnership(_owner);
   }
@@ -93,12 +95,9 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
       pricePerToken: request.pricePerToken,
       expiry: request.expiry
     });
-    orderId = hashOrder(order);
 
-    if (_orders[orderId].creator != address(0)) {
-      // Collision
-      revert InvalidOrderId(orderId);
-    }
+    orderId = bytes32(_nextOrderId);
+    _nextOrderId++;
     _orders[orderId] = order;
 
     emit OrderCreated(
@@ -287,27 +286,6 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
     delete _orders[orderId];
 
     emit OrderCancelled(orderId, tokenContract);
-  }
-
-  /**
-   * Deterministically create the orderId for the given order.
-   * @param order The order.
-   * @return orderId The ID of the order.
-   * @dev `order.quantity` is intentionally excluded from the hash to have a consistent result after partial fills.
-   */
-  function hashOrder(Order memory order) public pure returns (bytes32 orderId) {
-    return keccak256(
-      abi.encodePacked(
-        order.creator,
-        order.isListing,
-        order.isERC1155,
-        order.tokenContract,
-        order.tokenId,
-        order.expiry,
-        order.currency,
-        order.pricePerToken
-      )
-    );
   }
 
   /**
