@@ -155,6 +155,19 @@ interface IOrderbookFunctions is IOrderbookStorage {
     external
     view
     returns (bool[] memory valid, Order[] memory orders);
+
+  /**
+   * Returns the royalty details for the given token and cost.
+   * @param tokenContract Address of the token being traded.
+   * @param tokenId The ID of the token.
+   * @param cost Amount of currency sent/received for the trade.
+   * @return recipient Address to send royalties to.
+   * @return royalty Amount of currency to be paid as royalties.
+   */
+  function getRoyaltyInfo(address tokenContract, uint256 tokenId, uint256 cost)
+    external
+    view
+    returns (address recipient, uint256 royalty);
 }
 
 interface IOrderbookSignals {

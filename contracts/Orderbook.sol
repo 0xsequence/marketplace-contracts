@@ -370,11 +370,12 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
   }
 
   /**
-   * Will set the royalties fees and recipient for contracts that don't support ERC-2981
-   * @param recipient Address to send the fees to
-   * @param fee Fee percentage with a 10000 basis (e.g. 0.3% is 30 and 1% is 100 and 100% is 10000)
-   * @dev Can only be called by the owner
-   * @notice This can be called even when the contract supports ERC-2891, but will be ignored if it does
+   * Will set the royalties fees and recipient for contracts that don't support ERC-2981.
+   * @param tokenContract The contract the custom royalties apply to.
+   * @param recipient Address to send the royalties to.
+   * @param fee Fee percentage with a 10000 basis (e.g. 0.3% is 30 and 1% is 100 and 100% is 10000).
+   * @dev Can only be called by the owner.
+   * @notice This can be called even when the contract supports ERC-2891, but will be ignored if it does.
    */
   function setRoyaltyInfo(address tokenContract, address recipient, uint96 fee) public onlyOwner {
     if (fee > 10000) {
@@ -385,12 +386,12 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
   }
 
   /**
-   * Will return how much of currency need to be paid for the royalty.
-   * @param tokenContract Address of the erc-1155 token being traded
-   * @param tokenId ID of the erc-1155 token being traded
-   * @param cost Amount of currency sent/received for the trade
-   * @return recipient Address that will be able to claim the royalty
-   * @return royalty Amount of currency that will be sent to royalty recipient
+   * Returns the royalty details for the given token and cost.
+   * @param tokenContract Address of the token being traded.
+   * @param tokenId The ID of the token.
+   * @param cost Amount of currency sent/received for the trade.
+   * @return recipient Address to send royalties to.
+   * @return royalty Amount of currency to be paid as royalties.
    */
   function getRoyaltyInfo(address tokenContract, uint256 tokenId, uint256 cost)
     public
