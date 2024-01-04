@@ -8,14 +8,14 @@ Order request parameters.
 
 ```solidity
 struct OrderRequest {
-    bool isListing;
-    bool isERC1155;
-    address tokenContract;
-    uint256 tokenId;
-    uint256 quantity;
-    uint96 expiry;
-    address currency;
-    uint256 pricePerToken;
+  bool isListing;
+  bool isERC1155;
+  address tokenContract;
+  uint256 tokenId;
+  uint256 quantity;
+  uint96 expiry;
+  address currency;
+  uint256 pricePerToken;
 }
 ```
 
@@ -38,15 +38,15 @@ Order parameters.
 
 ```solidity
 struct Order {
-    address creator;
-    bool isListing;
-    bool isERC1155;
-    address tokenContract;
-    uint256 tokenId;
-    uint256 quantity;
-    uint96 expiry;
-    address currency;
-    uint256 pricePerToken;
+  address creator;
+  bool isListing;
+  bool isERC1155;
+  address tokenContract;
+  uint256 tokenId;
+  uint256 quantity;
+  uint96 expiry;
+  address currency;
+  uint256 pricePerToken;
 }
 ```
 
@@ -63,6 +63,26 @@ struct Order {
 |`expiry`|`uint96`|The expiry of the order.|
 |`currency`|`address`|The address of the currency.|
 |`pricePerToken`|`uint256`|The price per token, including royalty fees.|
+
+### CustomRoyalty
+Custom royalty parameters.
+
+*Used to store custom royalty settings for contracts do not support ERC2981.*
+
+
+```solidity
+struct CustomRoyalty {
+  address recipient;
+  uint96 fee;
+}
+```
+
+**Properties**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`recipient`|`address`|Address to send the fees to.|
+|`fee`|`uint96`|Fee percentage with a 10000 basis (e.g. 0.3% is 30 and 1% is 100 and 100% is 10000).|
 
 
 ## Functions
@@ -119,10 +139,10 @@ Accepts an order.
 
 ```solidity
 function acceptOrder(
-    bytes32 orderId,
-    uint256 quantity,
-    uint256[] calldata additionalFees,
-    address[] calldata additionalFeeReceivers
+  bytes32 orderId,
+  uint256 quantity,
+  uint256[] calldata additionalFees,
+  address[] calldata additionalFeeReceivers
 ) external;
 ```
 **Parameters**
@@ -142,10 +162,10 @@ Accepts orders.
 
 ```solidity
 function acceptOrderBatch(
-    bytes32[] calldata orderIds,
-    uint256[] calldata quantities,
-    uint256[] calldata additionalFees,
-    address[] calldata additionalFeeReceivers
+  bytes32[] calldata orderIds,
+  uint256[] calldata quantities,
+  uint256[] calldata additionalFees,
+  address[] calldata additionalFeeReceivers
 ) external;
 ```
 **Parameters**
@@ -264,9 +284,9 @@ An order is valid if it is active, has not expired and give amount of tokens (cu
 
 ```solidity
 function isOrderValidBatch(bytes32[] calldata orderIds, uint256[] calldata quantities)
-    external
-    view
-    returns (bool[] memory valid, Order[] memory orders);
+  external
+  view
+  returns (bool[] memory valid, Order[] memory orders);
 ```
 **Parameters**
 
@@ -283,6 +303,33 @@ function isOrderValidBatch(bytes32[] calldata orderIds, uint256[] calldata quant
 |`orders`|`Order[]`|The orders.|
 
 
+### getRoyaltyInfo
+
+Returns the royalty details for the given token and cost.
+
+
+```solidity
+function getRoyaltyInfo(address tokenContract, uint256 tokenId, uint256 cost)
+  external
+  view
+  returns (address recipient, uint256 royalty);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`tokenContract`|`address`|Address of the token being traded.|
+|`tokenId`|`uint256`|The ID of the token.|
+|`cost`|`uint256`|Amount of currency sent/received for the trade.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`recipient`|`address`|Address to send royalties to.|
+|`royalty`|`uint256`|Amount of currency to be paid as royalties.|
+
+
 
 ## Events
 ### OrderCreated
@@ -291,15 +338,15 @@ Emitted when an Order is created.
 
 ```solidity
 event OrderCreated(
-    bytes32 indexed orderId,
-    address indexed creator,
-    address indexed tokenContract,
-    uint256 tokenId,
-    bool isListing,
-    uint256 quantity,
-    address currency,
-    uint256 pricePerToken,
-    uint256 expiry
+  bytes32 indexed orderId,
+  address indexed creator,
+  address indexed tokenContract,
+  uint256 tokenId,
+  bool isListing,
+  uint256 quantity,
+  address currency,
+  uint256 pricePerToken,
+  uint256 expiry
 );
 ```
 
@@ -309,11 +356,11 @@ Emitted when an Order is accepted.
 
 ```solidity
 event OrderAccepted(
-    bytes32 indexed orderId,
-    address indexed buyer,
-    address indexed tokenContract,
-    uint256 quantity,
-    uint256 quantityRemaining
+  bytes32 indexed orderId,
+  address indexed buyer,
+  address indexed tokenContract,
+  uint256 quantity,
+  uint256 quantityRemaining
 );
 ```
 
@@ -325,7 +372,23 @@ Emitted when an Order is cancelled.
 event OrderCancelled(bytes32 indexed orderId, address indexed tokenContract);
 ```
 
+### CustomRoyaltyChanged
+Emitted when custom royalty settings are changed.
+
+
+```solidity
+event CustomRoyaltyChanged(address indexed tokenContract, address recipient, uint96 fee);
+```
+
 ## Errors
+### UnsupportedContractInterface
+Thrown when the contract address does not support the required interface.
+
+
+```solidity
+error UnsupportedContractInterface(address contractAddress, bytes4 interfaceId);
+```
+
 ### InvalidTokenApproval
 Thrown when the token approval is invalid.
 

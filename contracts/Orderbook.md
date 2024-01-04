@@ -9,7 +9,28 @@ mapping(bytes32 => Order) internal _orders;
 ```
 
 
+### customRoyalties
+
+```solidity
+mapping(address => CustomRoyalty) public customRoyalties;
+```
+
+
+### _nextOrderId
+
+```solidity
+uint256 private _nextOrderId;
+```
+
+
 ## Functions
+### constructor
+
+
+```solidity
+constructor(address _owner);
+```
+
 ### createOrder
 
 Creates an order.
@@ -80,10 +101,10 @@ Accepts an order.
 
 ```solidity
 function acceptOrder(
-    bytes32 orderId,
-    uint256 quantity,
-    uint256[] calldata additionalFees,
-    address[] calldata additionalFeeReceivers
+  bytes32 orderId,
+  uint256 quantity,
+  uint256[] calldata additionalFees,
+  address[] calldata additionalFeeReceivers
 ) external nonReentrant;
 ```
 **Parameters**
@@ -105,10 +126,10 @@ Accepts orders.
 
 ```solidity
 function acceptOrderBatch(
-    bytes32[] calldata orderIds,
-    uint256[] calldata quantities,
-    uint256[] calldata additionalFees,
-    address[] calldata additionalFeeReceivers
+  bytes32[] calldata orderIds,
+  uint256[] calldata quantities,
+  uint256[] calldata additionalFees,
+  address[] calldata additionalFeeReceivers
 ) external nonReentrant;
 ```
 **Parameters**
@@ -128,10 +149,10 @@ Performs acceptance of an order.
 
 ```solidity
 function _acceptOrder(
-    bytes32 orderId,
-    uint256 quantity,
-    uint256[] calldata additionalFees,
-    address[] calldata additionalFeeReceivers
+  bytes32 orderId,
+  uint256 quantity,
+  uint256[] calldata additionalFees,
+  address[] calldata additionalFeeReceivers
 ) internal;
 ```
 **Parameters**
@@ -183,29 +204,6 @@ Performs cancellation of an order.
 function _cancelOrder(bytes32 orderId) internal;
 ```
 **Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`orderId`|`bytes32`|The ID of the order.|
-
-
-### hashOrder
-
-Deterministically create the orderId for the given order.
-
-*`order.quantity` is intentionally excluded from the hash to have a consistent result after partial fills.*
-
-
-```solidity
-function hashOrder(Order memory order) public pure returns (bytes32 orderId);
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`order`|`Order`|The order.|
-
-**Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
@@ -288,9 +286,9 @@ An order is valid if it is active, has not expired and give amount of tokens (cu
 
 ```solidity
 function isOrderValidBatch(bytes32[] calldata orderIds, uint256[] calldata quantities)
-    external
-    view
-    returns (bool[] memory valid, Order[] memory orders);
+  external
+  view
+  returns (bool[] memory valid, Order[] memory orders);
 ```
 **Parameters**
 
@@ -328,31 +326,52 @@ function _isExpired(Order memory order) internal view returns (bool isExpired);
 |`isExpired`|`bool`|True if the order has expired.|
 
 
-### getRoyaltyInfo
+### setRoyaltyInfo
 
-Will return how much of currency need to be paid for the royalty.
+Will set the royalties fees and recipient for contracts that don't support ERC-2981.
+
+This can be called even when the contract supports ERC-2891, but will be ignored if it does.
+
+*Can only be called by the owner.*
 
 
 ```solidity
-function getRoyaltyInfo(address tokenContract, uint256 tokenId, uint256 cost)
-    public
-    view
-    returns (address recipient, uint256 royalty);
+function setRoyaltyInfo(address tokenContract, address recipient, uint96 fee) public onlyOwner;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`tokenContract`|`address`|Address of the erc-1155 token being traded|
-|`tokenId`|`uint256`|ID of the erc-1155 token being traded|
-|`cost`|`uint256`|Amount of currency sent/received for the trade|
+|`tokenContract`|`address`|The contract the custom royalties apply to.|
+|`recipient`|`address`|Address to send the royalties to.|
+|`fee`|`uint96`|Fee percentage with a 10000 basis (e.g. 0.3% is 30 and 1% is 100 and 100% is 10000).|
+
+
+### getRoyaltyInfo
+
+Returns the royalty details for the given token and cost.
+
+
+```solidity
+function getRoyaltyInfo(address tokenContract, uint256 tokenId, uint256 cost)
+  public
+  view
+  returns (address recipient, uint256 royalty);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`tokenContract`|`address`|Address of the token being traded.|
+|`tokenId`|`uint256`|The ID of the token.|
+|`cost`|`uint256`|Amount of currency sent/received for the trade.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`recipient`|`address`|Address that will be able to claim the royalty|
-|`royalty`|`uint256`|Amount of currency that will be sent to royalty recipient|
+|`recipient`|`address`|Address to send royalties to.|
+|`royalty`|`uint256`|Amount of currency to be paid as royalties.|
 
 
 ### _hasApprovedCurrency
@@ -361,7 +380,7 @@ Checks if the amount of currency is approved for transfer exceeds the given amou
 
 
 ```solidity
-function _hasApprovedCurrency(address currency, uint256 amount, address owner) internal view returns (bool isValid);
+function _hasApprovedCurrency(address currency, uint256 amount, address who) internal view returns (bool isValid);
 ```
 **Parameters**
 
@@ -369,7 +388,7 @@ function _hasApprovedCurrency(address currency, uint256 amount, address owner) i
 |----|----|-----------|
 |`currency`|`address`|The address of the currency.|
 |`amount`|`uint256`|The amount of currency.|
-|`owner`|`address`|The address of the owner of the currency.|
+|`who`|`address`|The address of the owner of the currency.|
 
 **Returns**
 
@@ -386,10 +405,10 @@ Checks if a token contract is ERC1155 or ERC721 and if the token is owned and ap
 
 
 ```solidity
-function _hasApprovedTokens(bool isERC1155, address tokenContract, uint256 tokenId, uint256 quantity, address owner)
-    internal
-    view
-    returns (bool isValid);
+function _hasApprovedTokens(bool isERC1155, address tokenContract, uint256 tokenId, uint256 quantity, address who)
+  internal
+  view
+  returns (bool isValid);
 ```
 **Parameters**
 
@@ -399,12 +418,30 @@ function _hasApprovedTokens(bool isERC1155, address tokenContract, uint256 token
 |`tokenContract`|`address`|The address of the token contract.|
 |`tokenId`|`uint256`|The ID of the token.|
 |`quantity`|`uint256`|The quantity of tokens to list.|
-|`owner`|`address`|The address of the owner of the token.|
+|`who`|`address`|The address of the owner of the token.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`isValid`|`bool`|True if the token is owned and approved for transfer.|
+
+
+### _requireInterface
+
+Checks if a contract implements an interface.
+
+*Reverts if the contract does not implement the interface.*
+
+
+```solidity
+function _requireInterface(address contractAddress, bytes4 interfaceId) internal view;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`contractAddress`|`address`|The address of the contract.|
+|`interfaceId`|`bytes4`|The interface ID.|
 
 
