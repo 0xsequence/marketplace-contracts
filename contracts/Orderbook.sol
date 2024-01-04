@@ -352,6 +352,9 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
     returns (bool[] memory valid, Order[] memory orders)
   {
     uint256 len = orderIds.length;
+    if (len != quantities.length) {
+      revert InvalidBatchRequest();
+    }
     valid = new bool[](len);
     orders = new Order[](len);
     for (uint256 i; i < len; i++) {
