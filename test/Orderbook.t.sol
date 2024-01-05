@@ -25,7 +25,7 @@ import {Test, console, stdError} from "forge-std/Test.sol";
 contract ERC1155ReentryAttacker is IERC1155TokenReceiver {
   address private immutable _orderbook;
 
-  bytes32 private _orderId;
+  uint256 private _orderId;
   uint256 private _quantity;
   bool private _hasAttacked;
 
@@ -33,7 +33,7 @@ contract ERC1155ReentryAttacker is IERC1155TokenReceiver {
     _orderbook = orderbook;
   }
 
-  function acceptListing(bytes32 orderId, uint256 quantity) external {
+  function acceptListing(uint256 orderId, uint256 quantity) external {
     _orderId = orderId;
     _quantity = quantity;
     Orderbook(_orderbook).acceptOrder(_orderId, _quantity, new uint256[](0), new address[](0));
@@ -157,7 +157,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   //
 
   // This is tested and fuzzed through internal calls
-  function test_createListing(OrderRequest memory request) internal returns (bytes32 orderId) {
+  function test_createListing(OrderRequest memory request) internal returns (uint256 orderId) {
     _fixRequest(request, true);
 
     Order memory expected = Order({
@@ -174,7 +174,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
 
     vm.expectEmit(true, true, true, true, address(orderbook));
     emit OrderCreated(
-      bytes32(expectedNextOrderId),
+      expectedNextOrderId,
       TOKEN_OWNER,
       expected.tokenContract,
       expected.tokenId,
@@ -310,7 +310,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   //
   // Accept Listing
   //
-  function test_acceptListing(OrderRequest memory request) public returns (bytes32 orderId) {
+  function test_acceptListing(OrderRequest memory request) public returns (uint256 orderId) {
     uint256 erc20BalCurrency = erc20.balanceOf(CURRENCY_OWNER);
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
     uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
@@ -362,7 +362,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
     uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
 
-    bytes32 orderId = test_createListing(request);
+    uint256 orderId = test_createListing(request);
 
     vm.expectEmit(true, true, true, true, address(orderbook));
     emit OrderAccepted(orderId, CURRENCY_OWNER, request.tokenContract, request.quantity, 0);
@@ -382,7 +382,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   }
 
   function test_acceptListing_invalidAdditionalFees(OrderRequest memory request) external {
-    bytes32 orderId = test_createListing(request);
+    uint256 orderId = test_createListing(request);
 
     // Zero fee
     uint256[] memory additionalFees = new uint256[](1);
@@ -427,7 +427,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   function test_acceptListing_invalidRoyalties(OrderRequest memory request) external {
     _fixRequest(request, true);
     vm.assume(request.pricePerToken > 10_000); // Ensure rounding
-    bytes32 orderId = test_createListing(request);
+    uint256 orderId = test_createListing(request);
 
     // >100%
     if (request.isERC1155) {
@@ -450,7 +450,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   }
 
   function test_acceptListing_invalidQuantity_zero(OrderRequest memory request) external {
-    bytes32 orderId = test_createListing(request);
+    uint256 orderId = test_createListing(request);
 
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(InvalidQuantity.selector);
@@ -458,7 +458,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   }
 
   function test_acceptListing_invalidQuantity_tooHigh(OrderRequest memory request) external {
-    bytes32 orderId = test_createListing(request);
+    uint256 orderId = test_createListing(request);
 
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(InvalidQuantity.selector);
@@ -466,7 +466,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   }
 
   function test_acceptListing_invalidExpiry(OrderRequest memory request, bool over) external {
-    bytes32 orderId = test_createListing(request);
+    uint256 orderId = test_createListing(request);
 
     vm.warp(request.expiry + (over ? 1 : 0));
 
@@ -491,7 +491,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
     uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
 
-    bytes32 orderId = test_createListing(request);
+    uint256 orderId = test_createListing(request);
 
     vm.startPrank(CURRENCY_OWNER);
     vm.expectEmit(true, true, true, true, address(orderbook));
@@ -520,8 +520,8 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
     uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
 
-    bytes32 orderId = test_createListing(request);
-    bytes32[] memory orderIds = new bytes32[](request.quantity);
+    uint256 orderId = test_createListing(request);
+    uint256[] memory orderIds = new uint256[](request.quantity);
     uint256[] memory quantities = new uint256[](request.quantity);
 
     for (uint256 i; i < request.quantity; i++) {
@@ -541,7 +541,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   function test_acceptListing_twice_overQuantity(OrderRequest memory request) external {
     request.isERC1155 = true;
 
-    bytes32 orderId = test_acceptListing(request);
+    uint256 orderId = test_acceptListing(request);
 
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(abi.encodeWithSelector(InvalidOrderId.selector, orderId));
@@ -549,7 +549,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   }
 
   function test_acceptListing_noFunds(OrderRequest memory request) external {
-    bytes32 orderId = test_createListing(request);
+    uint256 orderId = test_createListing(request);
 
     uint256 bal = erc20.balanceOf(CURRENCY_OWNER);
     vm.prank(CURRENCY_OWNER);
@@ -563,7 +563,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   function test_acceptListing_invalidERC721Owner(OrderRequest memory request) external {
     request.isERC1155 = false;
 
-    bytes32 orderId = test_createListing(request);
+    uint256 orderId = test_createListing(request);
 
     vm.prank(TOKEN_OWNER);
     erc721.transferFrom(TOKEN_OWNER, CURRENCY_OWNER, TOKEN_ID);
@@ -576,7 +576,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   function test_acceptListing_reentry(OrderRequest memory request) external {
     request.isERC1155 = true;
 
-    bytes32 orderId = test_createListing(request);
+    uint256 orderId = test_createListing(request);
 
     ERC1155ReentryAttacker attacker = new ERC1155ReentryAttacker(address(orderbook));
     erc20.mockMint(address(attacker), CURRENCY_QUANTITY);
@@ -590,7 +590,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   //
   // Cancel Listing
   //
-  function test_cancelListing(OrderRequest memory request) public returns (bytes32 orderId) {
+  function test_cancelListing(OrderRequest memory request) public returns (uint256 orderId) {
     orderId = test_createListing(request);
 
     // Fails invalid sender
@@ -622,7 +622,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     return orderId;
   }
 
-  function test_cancelListing_partialFill(OrderRequest memory request) public returns (bytes32 orderId) {
+  function test_cancelListing_partialFill(OrderRequest memory request) public returns (uint256 orderId) {
     request.isERC1155 = true;
     _fixRequest(request, true);
     if (request.quantity == 1) {
@@ -670,7 +670,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   //
 
   // This is tested and fuzzed through internal calls
-  function test_createOffer(OrderRequest memory request) internal returns (bytes32 orderId) {
+  function test_createOffer(OrderRequest memory request) internal returns (uint256 orderId) {
     _fixRequest(request, false);
 
     Order memory expected = Order({
@@ -687,7 +687,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
 
     vm.expectEmit(true, true, true, true, address(orderbook));
     emit OrderCreated(
-      bytes32(expectedNextOrderId),
+      expectedNextOrderId,
       CURRENCY_OWNER,
       expected.tokenContract,
       expected.tokenId,
@@ -762,7 +762,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   //
   // Accept Offer
   //
-  function test_acceptOffer(OrderRequest memory request) public returns (bytes32 orderId) {
+  function test_acceptOffer(OrderRequest memory request) public returns (uint256 orderId) {
     _fixRequest(request, false);
 
     uint256 totalPrice = request.pricePerToken * request.quantity;
@@ -816,7 +816,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
     uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
 
-    bytes32 orderId = test_createOffer(request);
+    uint256 orderId = test_createOffer(request);
 
     vm.expectEmit(true, true, true, true, address(orderbook));
     emit OrderAccepted(orderId, TOKEN_OWNER, request.tokenContract, request.quantity, 0);
@@ -836,7 +836,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   }
 
   function test_acceptOffer_invalidAdditionalFees(OrderRequest memory request) external {
-    bytes32 orderId = test_createOffer(request);
+    uint256 orderId = test_createOffer(request);
 
     // Zero fee
     uint256[] memory additionalFees = new uint256[](1);
@@ -881,7 +881,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   function test_acceptOffer_invalidRoyalties(OrderRequest memory request) external {
     _fixRequest(request, false);
     vm.assume(request.pricePerToken > 10_000); // Ensure rounding
-    bytes32 orderId = test_createOffer(request);
+    uint256 orderId = test_createOffer(request);
 
     // >100%
     if (request.isERC1155) {
@@ -904,7 +904,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   }
 
   function test_acceptOffer_invalidQuantity_zero(OrderRequest memory request) external {
-    bytes32 orderId = test_createOffer(request);
+    uint256 orderId = test_createOffer(request);
 
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(InvalidQuantity.selector);
@@ -912,7 +912,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   }
 
   function test_acceptOffer_invalidQuantity_tooHigh(OrderRequest memory request) external {
-    bytes32 orderId = test_createOffer(request);
+    uint256 orderId = test_createOffer(request);
 
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(InvalidQuantity.selector);
@@ -920,7 +920,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   }
 
   function test_acceptOffer_invalidExpiry(OrderRequest memory request, bool over) external {
-    bytes32 orderId = test_createOffer(request);
+    uint256 orderId = test_createOffer(request);
 
     vm.warp(request.expiry + (over ? 1 : 0));
 
@@ -945,7 +945,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
     uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
 
-    bytes32 orderId = test_createOffer(request);
+    uint256 orderId = test_createOffer(request);
 
     vm.startPrank(TOKEN_OWNER);
     vm.expectEmit(true, true, true, true, address(orderbook));
@@ -974,8 +974,8 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
     uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
 
-    bytes32 orderId = test_createOffer(request);
-    bytes32[] memory orderIds = new bytes32[](request.quantity);
+    uint256 orderId = test_createOffer(request);
+    uint256[] memory orderIds = new uint256[](request.quantity);
     uint256[] memory quantities = new uint256[](request.quantity);
 
     for (uint256 i; i < request.quantity; i++) {
@@ -995,7 +995,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   function test_acceptOffer_twice_overQuantity(OrderRequest memory request) external {
     request.isERC1155 = true;
 
-    bytes32 orderId = test_acceptOffer(request);
+    uint256 orderId = test_acceptOffer(request);
 
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(abi.encodeWithSelector(InvalidOrderId.selector, orderId));
@@ -1003,7 +1003,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   }
 
   function test_acceptOffer_noFunds(OrderRequest memory request) external {
-    bytes32 orderId = test_createOffer(request);
+    uint256 orderId = test_createOffer(request);
 
     uint256 bal = erc20.balanceOf(CURRENCY_OWNER);
     vm.prank(CURRENCY_OWNER);
@@ -1017,7 +1017,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   function test_acceptOffer_invalidERC721Owner(OrderRequest memory request) external {
     request.isERC1155 = false;
 
-    bytes32 orderId = test_createOffer(request);
+    uint256 orderId = test_createOffer(request);
 
     vm.prank(TOKEN_OWNER);
     erc721.transferFrom(TOKEN_OWNER, CURRENCY_OWNER, TOKEN_ID);
@@ -1030,7 +1030,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   //
   // Cancel Offer
   //
-  function test_cancelOffer(OrderRequest memory request) public returns (bytes32 orderId) {
+  function test_cancelOffer(OrderRequest memory request) public returns (uint256 orderId) {
     orderId = test_createOffer(request);
 
     // Fails invalid sender
@@ -1061,7 +1061,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     return orderId;
   }
 
-  function test_cancelOffer_partialFill(OrderRequest memory request) external returns (bytes32 orderId) {
+  function test_cancelOffer_partialFill(OrderRequest memory request) external returns (uint256 orderId) {
     request.isERC1155 = true;
     _fixRequest(request, false);
     if (request.quantity == 1) {
@@ -1102,12 +1102,10 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   //
   // Create Order Batch
   //
-  function test_createOrderBatch(uint8 count, OrderRequest[] memory input) public returns (bytes32[] memory orderIds) {
+  function test_createOrderBatch(uint8 count, OrderRequest[] memory input) public returns (uint256[] memory orderIds) {
     count = count > 4 ? 4 : count;
     vm.assume(input.length >= count);
     OrderRequest[] memory requests = new OrderRequest[](count);
-
-    uint96 baseExpiry = uint96(block.timestamp + 10);
 
     for (uint8 i; i < count; i++) {
       OrderRequest memory request = input[i];
@@ -1125,7 +1123,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
       vm.expectEmit(true, true, true, true, address(orderbook));
       OrderRequest memory request = requests[i];
       emit OrderCreated(
-        bytes32(expectedNextOrderId),
+        expectedNextOrderId,
         TOKEN_OWNER,
         request.tokenContract,
         request.tokenId,
@@ -1182,7 +1180,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
       expiry: uint96(block.timestamp)
     });
 
-    bytes32[] memory orderIds = new bytes32[](4);
+    uint256[] memory orderIds = new uint256[](4);
     request.isERC1155 = true;
     orderIds[0] = test_createListing(request);
     request.isERC1155 = false;
@@ -1211,7 +1209,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   }
 
   function test_acceptOrderBatch_fuzz(uint8 count, OrderRequest[] memory input, uint8[] memory quantities) external {
-    bytes32[] memory orderIds = test_createOrderBatch(count, input);
+    uint256[] memory orderIds = test_createOrderBatch(count, input);
     uint256 orderCount = orderIds.length;
     assembly {
       // Ensure array size is sufficient. 0s will be bound
@@ -1271,7 +1269,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
     uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
 
-    bytes32[] memory orderIds = new bytes32[](2);
+    uint256[] memory orderIds = new uint256[](2);
     orderIds[0] = test_createListing(request);
     request.expiry++;
     orderIds[1] = test_createListing(request);
@@ -1309,7 +1307,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
     uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
 
-    bytes32[] memory orderIds = new bytes32[](2);
+    uint256[] memory orderIds = new uint256[](2);
     orderIds[0] = test_createOffer(request);
     request.expiry++;
     orderIds[1] = test_createOffer(request);
@@ -1339,7 +1337,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   {
     count = count > 4 ? 4 : count;
     vm.assume(quantities.length != count);
-    bytes32[] memory orderIds = test_createOrderBatch(count, input);
+    uint256[] memory orderIds = test_createOrderBatch(count, input);
     vm.assume(quantities.length != orderIds.length);
 
     vm.expectRevert(InvalidBatchRequest.selector);
@@ -1350,7 +1348,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   // Cancel Order Batch
   //
   function test_cancelOrderBatch(uint8 count, OrderRequest[] memory input) external {
-    bytes32[] memory orderIds = test_createOrderBatch(count, input);
+    uint256[] memory orderIds = test_createOrderBatch(count, input);
 
     for (uint256 i; i < orderIds.length; i++) {
       Order memory order = orderbook.getOrder(orderIds[i]);
@@ -1376,14 +1374,14 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
 
   function test_cancelOrderBatch_invalidCaller(uint8 count, OrderRequest[] memory input) external {
     vm.assume(count > 1 && input.length > 1);
-    bytes32[] memory orderIds = test_createOrderBatch(count, input);
+    uint256[] memory orderIds = test_createOrderBatch(count, input);
 
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(abi.encodeWithSelector(InvalidOrderId.selector, orderIds[0]));
     orderbook.cancelOrderBatch(orderIds);
 
     // Created by CURRENCY_OWNER
-    bytes32 currencyOrderId = test_createOffer(input[0]);
+    uint256 currencyOrderId = test_createOffer(input[0]);
 
     orderIds[1] = currencyOrderId;
 
@@ -1407,7 +1405,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
       expiry: uint96(block.timestamp + 1)
     });
 
-    bytes32[] memory orderIds = new bytes32[](4);
+    uint256[] memory orderIds = new uint256[](4);
     uint256[] memory quantities = new uint256[](4);
 
     orderIds[0] = test_createListing(request);
@@ -1444,7 +1442,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
       expiry: uint96(block.timestamp + 1)
     });
 
-    bytes32[] memory orderIds = new bytes32[](4);
+    uint256[] memory orderIds = new uint256[](4);
     uint256[] memory quantities = new uint256[](4);
 
     orderIds[0] = test_createListing(request);
@@ -1486,7 +1484,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     });
 
     vm.prank(CURRENCY_OWNER);
-    bytes32 orderId = orderbook.createOrder(request);
+    uint256 orderId = orderbook.createOrder(request);
 
     vm.prank(CURRENCY_OWNER);
     erc20.approve(address(orderbook), 2 ether);
@@ -1520,7 +1518,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     });
 
     vm.prank(CURRENCY_OWNER);
-    bytes32 orderId = orderbook.createOrder(request);
+    uint256 orderId = orderbook.createOrder(request);
 
     vm.prank(CURRENCY_OWNER);
     erc20.approve(address(orderbook), request.pricePerToken * request.quantity); // Exact amount
@@ -1550,7 +1548,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
       expiry: uint96(block.timestamp + 1)
     });
 
-    bytes32[] memory orderIds = new bytes32[](4);
+    uint256[] memory orderIds = new uint256[](4);
     uint256[] memory quantities = new uint256[](4);
 
     orderIds[0] = test_createListing(request);
@@ -1590,9 +1588,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
       mstore(expectValid, count)
     }
 
-    uint96 baseExpiry = uint96(block.timestamp + 10);
-
-    bytes32[] memory orderIds = new bytes32[](count);
+    uint256[] memory orderIds = new uint256[](count);
     uint256[] memory quantities = new uint256[](count);
     for (uint8 i; i < count; i++) {
       OrderRequest memory request = requests[i];

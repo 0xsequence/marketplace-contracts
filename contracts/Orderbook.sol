@@ -12,7 +12,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
-  mapping(bytes32 => Order) internal _orders;
+  mapping(uint256 => Order) internal _orders;
   mapping(address => CustomRoyalty) public customRoyalties;
 
   uint256 private _nextOrderId;
@@ -26,7 +26,7 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
    * @param request The requested order's details.
    * @return orderId The ID of the order.
    */
-  function createOrder(OrderRequest calldata request) external nonReentrant returns (bytes32 orderId) {
+  function createOrder(OrderRequest calldata request) external nonReentrant returns (uint256 orderId) {
     return _createOrder(request);
   }
 
@@ -35,9 +35,9 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
    * @param requests The requested orders' details.
    * @return orderIds The IDs of the orders.
    */
-  function createOrderBatch(OrderRequest[] calldata requests) external nonReentrant returns (bytes32[] memory orderIds) {
+  function createOrderBatch(OrderRequest[] calldata requests) external nonReentrant returns (uint256[] memory orderIds) {
     uint256 len = requests.length;
-    orderIds = new bytes32[](len);
+    orderIds = new uint256[](len);
     for (uint256 i; i < len; i++) {
       orderIds[i] = _createOrder(requests[i]);
     }
@@ -48,7 +48,7 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
    * @param request The requested order's details.
    * @return orderId The ID of the order.
    */
-  function _createOrder(OrderRequest calldata request) internal returns (bytes32 orderId) {
+  function _createOrder(OrderRequest calldata request) internal returns (uint256 orderId) {
     uint256 quantity = request.quantity;
     address tokenContract = request.tokenContract;
 
@@ -96,7 +96,7 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
       expiry: request.expiry
     });
 
-    orderId = bytes32(_nextOrderId);
+    orderId = uint256(_nextOrderId);
     _nextOrderId++;
     _orders[orderId] = order;
 
@@ -123,7 +123,7 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
    * @param additionalFeeReceivers The addresses to send the additional fees to.
    */
   function acceptOrder(
-    bytes32 orderId,
+    uint256 orderId,
     uint256 quantity,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
@@ -143,7 +143,7 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
    * @dev Additional fees are applied to each order.
    */
   function acceptOrderBatch(
-    bytes32[] calldata orderIds,
+    uint256[] calldata orderIds,
     uint256[] calldata quantities,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
@@ -169,7 +169,7 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
    * @param additionalFeeReceivers The addresses to send the additional fees to.
    */
   function _acceptOrder(
-    bytes32 orderId,
+    uint256 orderId,
     uint256 quantity,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
@@ -257,7 +257,7 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
    * Cancels an order.
    * @param orderId The ID of the order.
    */
-  function cancelOrder(bytes32 orderId) external nonReentrant {
+  function cancelOrder(uint256 orderId) external nonReentrant {
     _cancelOrder(orderId);
   }
 
@@ -265,7 +265,7 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
    * Cancels orders.
    * @param orderIds The IDs of the orders.
    */
-  function cancelOrderBatch(bytes32[] calldata orderIds) external nonReentrant {
+  function cancelOrderBatch(uint256[] calldata orderIds) external nonReentrant {
     for (uint256 i; i < orderIds.length; i++) {
       _cancelOrder(orderIds[i]);
     }
@@ -275,7 +275,7 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
    * Performs cancellation of an order.
    * @param orderId The ID of the order.
    */
-  function _cancelOrder(bytes32 orderId) internal {
+  function _cancelOrder(uint256 orderId) internal {
     Order storage order = _orders[orderId];
     if (order.creator != msg.sender) {
       revert InvalidOrderId(orderId);
@@ -293,7 +293,7 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
    * @param orderId The ID of the order.
    * @return order The order.
    */
-  function getOrder(bytes32 orderId) external view returns (Order memory order) {
+  function getOrder(uint256 orderId) external view returns (Order memory order) {
     return _orders[orderId];
   }
 
@@ -302,7 +302,7 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
    * @param orderIds The IDs of the orders.
    * @return orders The orders.
    */
-  function getOrderBatch(bytes32[] calldata orderIds) external view returns (Order[] memory orders) {
+  function getOrderBatch(uint256[] calldata orderIds) external view returns (Order[] memory orders) {
     uint256 len = orderIds.length;
     orders = new Order[](len);
     for (uint256 i; i < len; i++) {
@@ -318,7 +318,7 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
    * @return order The order.
    * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValid(bytes32 orderId, uint256 quantity) public view returns (bool valid, Order memory order) {
+  function isOrderValid(uint256 orderId, uint256 quantity) public view returns (bool valid, Order memory order) {
     order = _orders[orderId];
     if (quantity == 0) {
       // 0 is assumed to be max quantity
@@ -346,7 +346,7 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
    * @return orders The orders.
    * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValidBatch(bytes32[] calldata orderIds, uint256[] calldata quantities)
+  function isOrderValidBatch(uint256[] calldata orderIds, uint256[] calldata quantities)
     external
     view
     returns (bool[] memory valid, Order[] memory orders)

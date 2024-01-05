@@ -68,14 +68,14 @@ interface IOrderbookFunctions is IOrderbookStorage {
    * @notice A listing is when the maker is selling tokens for currency.
    * @notice An offer is when the maker is buying tokens with currency.
    */
-  function createOrder(OrderRequest calldata request) external returns (bytes32 orderId);
+  function createOrder(OrderRequest calldata request) external returns (uint256 orderId);
 
   /**
    * Creates orders.
    * @param requests The requested orders' details.
    * @return orderIds The IDs of the orders.
    */
-  function createOrderBatch(OrderRequest[] calldata requests) external returns (bytes32[] memory orderIds);
+  function createOrderBatch(OrderRequest[] calldata requests) external returns (uint256[] memory orderIds);
 
   /**
    * Accepts an order.
@@ -85,7 +85,7 @@ interface IOrderbookFunctions is IOrderbookStorage {
    * @param additionalFeeReceivers The addresses to send the additional fees to.
    */
   function acceptOrder(
-    bytes32 orderId,
+    uint256 orderId,
     uint256 quantity,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
@@ -100,7 +100,7 @@ interface IOrderbookFunctions is IOrderbookStorage {
    * @param additionalFeeReceivers The addresses to send the additional fees to.
    */
   function acceptOrderBatch(
-    bytes32[] calldata orderIds,
+    uint256[] calldata orderIds,
     uint256[] calldata quantities,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
@@ -111,27 +111,27 @@ interface IOrderbookFunctions is IOrderbookStorage {
    * Cancels an order.
    * @param orderId The ID of the order.
    */
-  function cancelOrder(bytes32 orderId) external;
+  function cancelOrder(uint256 orderId) external;
 
   /**
    * Cancels orders.
    * @param orderIds The IDs of the orders.
    */
-  function cancelOrderBatch(bytes32[] calldata orderIds) external;
+  function cancelOrderBatch(uint256[] calldata orderIds) external;
 
   /**
    * Gets an order.
    * @param orderId The ID of the order.
    * @return order The order.
    */
-  function getOrder(bytes32 orderId) external view returns (Order memory order);
+  function getOrder(uint256 orderId) external view returns (Order memory order);
 
   /**
    * Gets orders.
    * @param orderIds The IDs of the orders.
    * @return orders The orders.
    */
-  function getOrderBatch(bytes32[] calldata orderIds) external view returns (Order[] memory orders);
+  function getOrderBatch(uint256[] calldata orderIds) external view returns (Order[] memory orders);
 
   /**
    * Checks if an order is valid.
@@ -141,7 +141,7 @@ interface IOrderbookFunctions is IOrderbookStorage {
    * @return order The order.
    * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValid(bytes32 orderId, uint256 quantity) external view returns (bool valid, Order memory order);
+  function isOrderValid(uint256 orderId, uint256 quantity) external view returns (bool valid, Order memory order);
 
   /**
    * Checks if orders are valid.
@@ -151,7 +151,7 @@ interface IOrderbookFunctions is IOrderbookStorage {
    * @return orders The orders.
    * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValidBatch(bytes32[] calldata orderIds, uint256[] calldata quantities)
+  function isOrderValidBatch(uint256[] calldata orderIds, uint256[] calldata quantities)
     external
     view
     returns (bool[] memory valid, Order[] memory orders);
@@ -177,7 +177,7 @@ interface IOrderbookSignals {
 
   /// Emitted when an Order is created.
   event OrderCreated(
-    bytes32 indexed orderId,
+    uint256 indexed orderId,
     address indexed creator,
     address indexed tokenContract,
     uint256 tokenId,
@@ -190,7 +190,7 @@ interface IOrderbookSignals {
 
   /// Emitted when an Order is accepted.
   event OrderAccepted(
-    bytes32 indexed orderId,
+    uint256 indexed orderId,
     address indexed buyer,
     address indexed tokenContract,
     uint256 quantity,
@@ -198,7 +198,7 @@ interface IOrderbookSignals {
   );
 
   /// Emitted when an Order is cancelled.
-  event OrderCancelled(bytes32 indexed orderId, address indexed tokenContract);
+  event OrderCancelled(uint256 indexed orderId, address indexed tokenContract);
 
   /// Emitted when custom royalty settings are changed.
   event CustomRoyaltyChanged(address indexed tokenContract, address recipient, uint96 fee);
@@ -217,7 +217,7 @@ interface IOrderbookSignals {
   error InvalidCurrencyApproval(address currency, uint256 quantity, address owner);
 
   /// Thrown when order id is invalid.
-  error InvalidOrderId(bytes32 orderId);
+  error InvalidOrderId(uint256 orderId);
 
   /// Thrown when the parameters of a batch accept request are invalid.
   error InvalidBatchRequest();

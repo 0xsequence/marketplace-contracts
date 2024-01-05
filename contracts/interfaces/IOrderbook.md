@@ -96,7 +96,7 @@ An offer is when the maker is buying tokens with currency.
 
 
 ```solidity
-function createOrder(OrderRequest calldata request) external returns (bytes32 orderId);
+function createOrder(OrderRequest calldata request) external returns (uint256 orderId);
 ```
 **Parameters**
 
@@ -108,7 +108,7 @@ function createOrder(OrderRequest calldata request) external returns (bytes32 or
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderId`|`bytes32`|The ID of the order.|
+|`orderId`|`uint256`|The ID of the order.|
 
 
 ### createOrderBatch
@@ -117,7 +117,7 @@ Creates orders.
 
 
 ```solidity
-function createOrderBatch(OrderRequest[] calldata requests) external returns (bytes32[] memory orderIds);
+function createOrderBatch(OrderRequest[] calldata requests) external returns (uint256[] memory orderIds);
 ```
 **Parameters**
 
@@ -129,7 +129,7 @@ function createOrderBatch(OrderRequest[] calldata requests) external returns (by
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderIds`|`bytes32[]`|The IDs of the orders.|
+|`orderIds`|`uint256[]`|The IDs of the orders.|
 
 
 ### acceptOrder
@@ -139,7 +139,7 @@ Accepts an order.
 
 ```solidity
 function acceptOrder(
-  bytes32 orderId,
+  uint256 orderId,
   uint256 quantity,
   uint256[] calldata additionalFees,
   address[] calldata additionalFeeReceivers
@@ -149,7 +149,7 @@ function acceptOrder(
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderId`|`bytes32`|The ID of the order.|
+|`orderId`|`uint256`|The ID of the order.|
 |`quantity`|`uint256`|The quantity of tokens to accept.|
 |`additionalFees`|`uint256[]`|The additional fees to pay.|
 |`additionalFeeReceivers`|`address[]`|The addresses to send the additional fees to.|
@@ -162,7 +162,7 @@ Accepts orders.
 
 ```solidity
 function acceptOrderBatch(
-  bytes32[] calldata orderIds,
+  uint256[] calldata orderIds,
   uint256[] calldata quantities,
   uint256[] calldata additionalFees,
   address[] calldata additionalFeeReceivers
@@ -172,7 +172,7 @@ function acceptOrderBatch(
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderIds`|`bytes32[]`|The IDs of the orders.|
+|`orderIds`|`uint256[]`|The IDs of the orders.|
 |`quantities`|`uint256[]`|The quantities of tokens to accept.|
 |`additionalFees`|`uint256[]`|The additional fees to pay.|
 |`additionalFeeReceivers`|`address[]`|The addresses to send the additional fees to.|
@@ -184,13 +184,13 @@ Cancels an order.
 
 
 ```solidity
-function cancelOrder(bytes32 orderId) external;
+function cancelOrder(uint256 orderId) external;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderId`|`bytes32`|The ID of the order.|
+|`orderId`|`uint256`|The ID of the order.|
 
 
 ### cancelOrderBatch
@@ -199,13 +199,13 @@ Cancels orders.
 
 
 ```solidity
-function cancelOrderBatch(bytes32[] calldata orderIds) external;
+function cancelOrderBatch(uint256[] calldata orderIds) external;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderIds`|`bytes32[]`|The IDs of the orders.|
+|`orderIds`|`uint256[]`|The IDs of the orders.|
 
 
 ### getOrder
@@ -214,13 +214,13 @@ Gets an order.
 
 
 ```solidity
-function getOrder(bytes32 orderId) external view returns (Order memory order);
+function getOrder(uint256 orderId) external view returns (Order memory order);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderId`|`bytes32`|The ID of the order.|
+|`orderId`|`uint256`|The ID of the order.|
 
 **Returns**
 
@@ -235,13 +235,13 @@ Gets orders.
 
 
 ```solidity
-function getOrderBatch(bytes32[] calldata orderIds) external view returns (Order[] memory orders);
+function getOrderBatch(uint256[] calldata orderIds) external view returns (Order[] memory orders);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderIds`|`bytes32[]`|The IDs of the orders.|
+|`orderIds`|`uint256[]`|The IDs of the orders.|
 
 **Returns**
 
@@ -258,13 +258,13 @@ An order is valid if it is active, has not expired and give amount of tokens (cu
 
 
 ```solidity
-function isOrderValid(bytes32 orderId, uint256 quantity) external view returns (bool valid, Order memory order);
+function isOrderValid(uint256 orderId, uint256 quantity) external view returns (bool valid, Order memory order);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderId`|`bytes32`|The ID of the order.|
+|`orderId`|`uint256`|The ID of the order.|
 |`quantity`|`uint256`|The amount of tokens to exchange. 0 is assumed to be the order's available quantity.|
 
 **Returns**
@@ -283,7 +283,7 @@ An order is valid if it is active, has not expired and give amount of tokens (cu
 
 
 ```solidity
-function isOrderValidBatch(bytes32[] calldata orderIds, uint256[] calldata quantities)
+function isOrderValidBatch(uint256[] calldata orderIds, uint256[] calldata quantities)
   external
   view
   returns (bool[] memory valid, Order[] memory orders);
@@ -292,7 +292,7 @@ function isOrderValidBatch(bytes32[] calldata orderIds, uint256[] calldata quant
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderIds`|`bytes32[]`|The IDs of the orders.|
+|`orderIds`|`uint256[]`|The IDs of the orders.|
 |`quantities`|`uint256[]`|The amount of tokens to exchange per order. 0 is assumed to be the order's available quantity.|
 
 **Returns**
@@ -338,7 +338,7 @@ Emitted when an Order is created.
 
 ```solidity
 event OrderCreated(
-  bytes32 indexed orderId,
+  uint256 indexed orderId,
   address indexed creator,
   address indexed tokenContract,
   uint256 tokenId,
@@ -356,7 +356,7 @@ Emitted when an Order is accepted.
 
 ```solidity
 event OrderAccepted(
-  bytes32 indexed orderId,
+  uint256 indexed orderId,
   address indexed buyer,
   address indexed tokenContract,
   uint256 quantity,
@@ -369,7 +369,7 @@ Emitted when an Order is cancelled.
 
 
 ```solidity
-event OrderCancelled(bytes32 indexed orderId, address indexed tokenContract);
+event OrderCancelled(uint256 indexed orderId, address indexed tokenContract);
 ```
 
 ### CustomRoyaltyChanged
@@ -410,7 +410,7 @@ Thrown when order id is invalid.
 
 
 ```solidity
-error InvalidOrderId(bytes32 orderId);
+error InvalidOrderId(uint256 orderId);
 ```
 
 ### InvalidBatchRequest
