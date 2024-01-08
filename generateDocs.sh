@@ -2,13 +2,13 @@
 forge doc
 
 # Create contract docs
-cp docs/src/contracts/Orderbook.sol/contract.Orderbook.md contracts/Orderbook.md
-sed -i '2,5d' contracts/Orderbook.md
+cp docs/src/contracts/SequenceMarket.sol/contract.SequenceMarket.md contracts/SequenceMarket.md
+sed -i '2,5d' contracts/SequenceMarket.md
 
 # Create interface docs
-cp docs/src/contracts/interfaces/IOrderbook.sol/interface.IOrderbook*.md contracts/interfaces
-sed -i '2,6d' contracts/interfaces/interface.IOrderbook.md
-sed -i '1,6d' contracts/interfaces/interface.IOrderbookFunctions.md
-sed -i '1,3d' contracts/interfaces/interface.IOrderbookStorage.md contracts/interfaces/interface.IOrderbookSignals.md
-cat contracts/interfaces/interface.IOrderbook.md contracts/interfaces/interface.IOrderbookStorage.md contracts/interfaces/interface.IOrderbookFunctions.md contracts/interfaces/interface.IOrderbookSignals.md > contracts/interfaces/IOrderbook.md
-rm contracts/interfaces/interface.IOrderbook*.md
+cp docs/src/contracts/interfaces/ISequenceMarket.sol/interface.ISequenceMarket*.md contracts/interfaces
+sed -i '2,6d' contracts/interfaces/interface.ISequenceMarket.md
+sed -i '1,6d' contracts/interfaces/interface.ISequenceMarketFunctions.md
+sed -i '1,3d' contracts/interfaces/interface.ISequenceMarketStorage.md contracts/interfaces/interface.ISequenceMarketSignals.md
+cat contracts/interfaces/interface.ISequenceMarket.md contracts/interfaces/interface.ISequenceMarketStorage.md contracts/interfaces/interface.ISequenceMarketFunctions.md contracts/interfaces/interface.ISequenceMarketSignals.md > contracts/interfaces/ISequenceMarket.md
+rm contracts/interfaces/interface.ISequenceMarket*.md
