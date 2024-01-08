@@ -123,7 +123,7 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
   //
   // Common Create Order
   //
-  function test_createOrder_interfaceInvalid(OrderRequest memory request, bool brokenToken, address invalidAddr)
+  function test_createOrder_interfaceInvalid(OrderRequest memory request, address invalidAddr)
     external
   {
     _assumeNotPrecompile(invalidAddr);
@@ -132,13 +132,8 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
 
     bytes4 expectedInterface;
 
-    if (brokenToken) {
-      request.tokenContract = invalidAddr;
-      expectedInterface = isERC1155 ? type(IERC1155).interfaceId : type(IERC721).interfaceId;
-    } else {
-      request.currency = invalidAddr;
-      expectedInterface = type(IERC20).interfaceId;
-    }
+    request.tokenContract = invalidAddr;
+    expectedInterface = isERC1155 ? type(IERC1155).interfaceId : type(IERC721).interfaceId;
 
     // Must NOT support interface
     if (invalidAddr.code.length != 0) {
