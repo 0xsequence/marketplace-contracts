@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity 0.8.19;
 
-import {IOrderbook} from "./interfaces/IOrderbook.sol";
+import {ISequenceMarket} from "./interfaces/ISequenceMarket.sol";
 import {IERC721} from "./interfaces/IERC721.sol";
 import {IERC2981} from "./interfaces/IERC2981.sol";
 import {IERC20} from "@0xsequence/erc-1155/contracts/interfaces/IERC20.sol";
@@ -11,7 +11,7 @@ import {TransferHelper} from "@uniswap/lib/contracts/libraries/TransferHelper.so
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
+contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
   mapping(uint256 => Order) internal _orders;
   mapping(address => CustomRoyalty) public customRoyalties;
 
@@ -437,12 +437,12 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
     view
     returns (bool isValid)
   {
-    address orderbook = address(this);
+    address market = address(this);
 
     if (isERC1155) {
       // ERC1155
       return quantity > 0 && IERC1155(tokenContract).balanceOf(who, tokenId) >= quantity
-        && IERC1155(tokenContract).isApprovedForAll(who, orderbook);
+        && IERC1155(tokenContract).isApprovedForAll(who, market);
     }
 
     // ERC721
@@ -458,7 +458,7 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
     } catch {} // solhint-disable-line no-empty-blocks
 
     return quantity == 1 && who == tokenOwner
-      && (operator == orderbook || IERC721(tokenContract).isApprovedForAll(who, orderbook));
+      && (operator == market || IERC721(tokenContract).isApprovedForAll(who, market));
   }
 
   /**

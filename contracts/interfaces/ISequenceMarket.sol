@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity 0.8.19;
 
-interface IOrderbookStorage {
+interface ISequenceMarketStorage {
   /**
    * Order request parameters.
    * @param isListing True if the order is a listing, false if it is an offer.
@@ -60,7 +60,7 @@ interface IOrderbookStorage {
   }
 }
 
-interface IOrderbookFunctions is IOrderbookStorage {
+interface ISequenceMarketFunctions is ISequenceMarketStorage {
   /**
    * Creates an order.
    * @param request The requested order's details.
@@ -170,7 +170,7 @@ interface IOrderbookFunctions is IOrderbookStorage {
     returns (address recipient, uint256 royalty);
 }
 
-interface IOrderbookSignals {
+interface ISequenceMarketSignals {
   //
   // Events
   //
@@ -242,4 +242,4 @@ interface IOrderbookSignals {
 }
 
 // solhint-disable-next-line no-empty-blocks
-interface IOrderbook is IOrderbookFunctions, IOrderbookSignals {}
+interface ISequenceMarket is ISequenceMarketFunctions, ISequenceMarketSignals {}
