@@ -1,11 +1,11 @@
-# Orderbook
+# SequenceMarket
 
 
 ## State Variables
-### _orders
+### _requests
 
 ```solidity
-mapping(uint256 => Order) internal _orders;
+mapping(uint256 => Request) internal _requests;
 ```
 
 
@@ -16,10 +16,10 @@ mapping(address => CustomRoyalty) public customRoyalties;
 ```
 
 
-### _nextOrderId
+### _nextRequestId
 
 ```solidity
-uint256 private _nextOrderId;
+uint256 private _nextRequestId;
 ```
 
 
@@ -31,77 +31,80 @@ uint256 private _nextOrderId;
 constructor(address _owner);
 ```
 
-### createOrder
+### createRequest
 
-Creates an order.
+Creates a request.
 
 
 ```solidity
-function createOrder(OrderRequest calldata request) external nonReentrant returns (uint256 orderId);
+function createRequest(RequestParams calldata request) external nonReentrant returns (uint256 requestId);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`request`|`OrderRequest`|The requested order's details.|
+|`request`|`RequestParams`|The request's details.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderId`|`uint256`|The ID of the order.|
+|`requestId`|`uint256`|The ID of the request.|
 
 
-### createOrderBatch
+### createRequestBatch
 
-Creates orders.
+Creates requests.
 
 
 ```solidity
-function createOrderBatch(OrderRequest[] calldata requests) external nonReentrant returns (uint256[] memory orderIds);
+function createRequestBatch(RequestParams[] calldata requests)
+  external
+  nonReentrant
+  returns (uint256[] memory requestIds);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`requests`|`OrderRequest[]`|The requested orders' details.|
+|`requests`|`RequestParams[]`|The requests' details.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderIds`|`uint256[]`|The IDs of the orders.|
+|`requestIds`|`uint256[]`|The IDs of the requests.|
 
 
-### _createOrder
+### _createRequest
 
-Performs creation of an order.
+Performs creation of a request.
 
 
 ```solidity
-function _createOrder(OrderRequest calldata request) internal returns (uint256 orderId);
+function _createRequest(RequestParams calldata request) internal returns (uint256 requestId);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`request`|`OrderRequest`|The requested order's details.|
+|`request`|`RequestParams`|The request's details.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderId`|`uint256`|The ID of the order.|
+|`requestId`|`uint256`|The ID of the request.|
 
 
-### acceptOrder
+### acceptRequest
 
-Accepts an order.
+Accepts a request.
 
 
 ```solidity
-function acceptOrder(
-  uint256 orderId,
+function acceptRequest(
+  uint256 requestId,
   uint256 quantity,
   uint256[] calldata additionalFees,
   address[] calldata additionalFeeReceivers
@@ -111,22 +114,22 @@ function acceptOrder(
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderId`|`uint256`|The ID of the order.|
+|`requestId`|`uint256`|The ID of the request.|
 |`quantity`|`uint256`|The quantity of tokens to accept.|
 |`additionalFees`|`uint256[]`|The additional fees to pay.|
 |`additionalFeeReceivers`|`address[]`|The addresses to send the additional fees to.|
 
 
-### acceptOrderBatch
+### acceptRequestBatch
 
-Accepts orders.
+Accepts requests.
 
-*Additional fees are applied to each order.*
+*Additional fees are applied to each request.*
 
 
 ```solidity
-function acceptOrderBatch(
-  uint256[] calldata orderIds,
+function acceptRequestBatch(
+  uint256[] calldata requestIds,
   uint256[] calldata quantities,
   uint256[] calldata additionalFees,
   address[] calldata additionalFeeReceivers
@@ -136,20 +139,20 @@ function acceptOrderBatch(
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderIds`|`uint256[]`|The IDs of the orders.|
+|`requestIds`|`uint256[]`|The IDs of the requests.|
 |`quantities`|`uint256[]`|The quantities of tokens to accept.|
 |`additionalFees`|`uint256[]`|The additional fees to pay.|
 |`additionalFeeReceivers`|`address[]`|The addresses to send the additional fees to.|
 
 
-### _acceptOrder
+### _acceptRequest
 
-Performs acceptance of an order.
+Performs acceptance of a request.
 
 
 ```solidity
-function _acceptOrder(
-  uint256 orderId,
+function _acceptRequest(
+  uint256 requestId,
   uint256 quantity,
   uint256[] calldata additionalFees,
   address[] calldata additionalFeeReceivers
@@ -159,171 +162,171 @@ function _acceptOrder(
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderId`|`uint256`|The ID of the order.|
+|`requestId`|`uint256`|The ID of the request.|
 |`quantity`|`uint256`|The quantity of tokens to accept.|
 |`additionalFees`|`uint256[]`|The additional fees to pay.|
 |`additionalFeeReceivers`|`address[]`|The addresses to send the additional fees to.|
 
 
-### cancelOrder
+### cancelRequest
 
-Cancels an order.
+Cancels a request.
 
 
 ```solidity
-function cancelOrder(uint256 orderId) external nonReentrant;
+function cancelRequest(uint256 requestId) external nonReentrant;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderId`|`uint256`|The ID of the order.|
+|`requestId`|`uint256`|The ID of the request.|
 
 
-### cancelOrderBatch
+### cancelRequestBatch
 
-Cancels orders.
+Cancels requests.
 
 
 ```solidity
-function cancelOrderBatch(uint256[] calldata orderIds) external nonReentrant;
+function cancelRequestBatch(uint256[] calldata requestIds) external nonReentrant;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderIds`|`uint256[]`|The IDs of the orders.|
+|`requestIds`|`uint256[]`|The IDs of the requests.|
 
 
-### _cancelOrder
+### _cancelRequest
 
-Performs cancellation of an order.
+Performs cancellation of a request.
 
 
 ```solidity
-function _cancelOrder(uint256 orderId) internal;
+function _cancelRequest(uint256 requestId) internal;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderId`|`uint256`|The ID of the order.|
+|`requestId`|`uint256`|The ID of the request.|
 
 
-### getOrder
+### getRequest
 
-Gets an order.
+Gets a request.
 
 
 ```solidity
-function getOrder(uint256 orderId) external view returns (Order memory order);
+function getRequest(uint256 requestId) external view returns (Request memory request);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderId`|`uint256`|The ID of the order.|
+|`requestId`|`uint256`|The ID of the request.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`order`|`Order`|The order.|
+|`request`|`Request`|The request.|
 
 
-### getOrderBatch
+### getRequestBatch
 
-Gets orders.
+Gets requests.
 
 
 ```solidity
-function getOrderBatch(uint256[] calldata orderIds) external view returns (Order[] memory orders);
+function getRequestBatch(uint256[] calldata requestIds) external view returns (Request[] memory requests);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderIds`|`uint256[]`|The IDs of the orders.|
+|`requestIds`|`uint256[]`|The IDs of the requests.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orders`|`Order[]`|The orders.|
+|`requests`|`Request[]`|The requests.|
 
 
-### isOrderValid
+### isRequestValid
 
-Checks if an order is valid.
+Checks if a request is valid.
 
-An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
+A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
 
 
 ```solidity
-function isOrderValid(uint256 orderId, uint256 quantity) public view returns (bool valid, Order memory order);
+function isRequestValid(uint256 requestId, uint256 quantity) public view returns (bool valid, Request memory request);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderId`|`uint256`|The ID of the order.|
-|`quantity`|`uint256`|The amount of tokens to exchange. 0 is assumed to be the order's available quantity.|
+|`requestId`|`uint256`|The ID of the request.|
+|`quantity`|`uint256`|The amount of tokens to exchange. 0 is assumed to be the request's available quantity.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`valid`|`bool`|The validity of the order.|
-|`order`|`Order`|The order.|
+|`valid`|`bool`|The validity of the request.|
+|`request`|`Request`|The request.|
 
 
-### isOrderValidBatch
+### isRequestValidBatch
 
-Checks if orders are valid.
+Checks if requests are valid.
 
-An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
+A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
 
 
 ```solidity
-function isOrderValidBatch(uint256[] calldata orderIds, uint256[] calldata quantities)
+function isRequestValidBatch(uint256[] calldata requestIds, uint256[] calldata quantities)
   external
   view
-  returns (bool[] memory valid, Order[] memory orders);
+  returns (bool[] memory valid, Request[] memory requests);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`orderIds`|`uint256[]`|The IDs of the orders.|
-|`quantities`|`uint256[]`|The amount of tokens to exchange per order. 0 is assumed to be the order's available quantity.|
+|`requestIds`|`uint256[]`|The IDs of the requests.|
+|`quantities`|`uint256[]`|The amount of tokens to exchange per request. 0 is assumed to be the request's available quantity.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`valid`|`bool[]`|The validities of the orders.|
-|`orders`|`Order[]`|The orders.|
+|`valid`|`bool[]`|The validities of the requests.|
+|`requests`|`Request[]`|The requests.|
 
 
 ### _isExpired
 
-Checks if a order has expired.
+Checks if a request has expired.
 
 
 ```solidity
-function _isExpired(Order memory order) internal view returns (bool isExpired);
+function _isExpired(Request memory request) internal view returns (bool isExpired);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`order`|`Order`|The order to check.|
+|`request`|`Request`|The request to check.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`isExpired`|`bool`|True if the order has expired.|
+|`isExpired`|`bool`|True if the request has expired.|
 
 
 ### setRoyaltyInfo

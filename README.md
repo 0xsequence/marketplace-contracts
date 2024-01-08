@@ -10,31 +10,31 @@ This is an important notice! Please read carefully before proceeding.
 
 ## Contracts
 
-### Orderbook
+### Sequence Market
 
-The Orderbook contract enables marketplace participants to create and fill listings and offers exchanging ERC-1155 and ERC-721 tokens for ERC-20 tokens.
+The Sequence Market contract enables marketplace participants to create and fill listings and offers exchanging ERC-1155 and ERC-721 tokens for ERC-20 tokens.
 
-The Orderbook accept partial fills of any order using ERC-1155 tokens.
+The Sequence Market accept partial fills of any order using ERC-1155 tokens.
 
-The Orderbook contract has an owner who can set the royalty parameters for any contract that doesn't natively support ERC-2981. There are no other administrative functions.
+The Sequence Market contract has an owner who can set the royalty parameters for any contract that doesn't natively support ERC-2981. There are no other administrative functions.
 
-Any platform is free to integrate with the Orderbook contract to provide a marketplace for their users.
+Any platform is free to integrate with the Sequence Market contract to provide a marketplace for their users.
 
-Note: The Orderbook is designed to support standard ERC-1155, ERC-721 and ERC-20 implementations. Tokens with non-standard implementations (e.g. tokens that take fees on transfer) may not be compatible with the Orderbook contract. Use of a token in the Orderbook does not imply endorsement of the token by the Orderbook.
+Note: The Sequence Market is designed to support standard ERC-1155, ERC-721 and ERC-20 implementations. Tokens with non-standard implementations (e.g. tokens that take fees on transfer) may not be compatible with the Sequence Market contract. Use of a token in the Sequence Market does not imply endorsement of the token by the Sequence Market.
 
 #### Flow
 
-1. The order creator approves the Orderbook contract to transfer of ERC-1155 or ERC-721 tokens for a listing, or ERC-20 tokens for an offer.
-2. The order creator calls the Orderbook to create an order.
-3. The order acceptor approves the Orderbook contract to transfer the corresponding ERC-20 tokens for a listing, or ERC-1155 or ERC-721 tokens for an offer.
-4. The order acceptor calls the Orderbook to accept the order.
-5. The Orderbook contract transfers the tokens between the order creator and acceptor, deducting fees as applicable.
+1. The order creator approves the Sequence Market contract to transfer of ERC-1155 or ERC-721 tokens for a listing, or ERC-20 tokens for an offer.
+2. The order creator calls the Sequence Market to create an order.
+3. The order acceptor approves the Sequence Market contract to transfer the corresponding ERC-20 tokens for a listing, or ERC-1155 or ERC-721 tokens for an offer.
+4. The order acceptor calls the Sequence Market to accept the order.
+5. The Sequence Market contract transfers the tokens between the order creator and acceptor, deducting fees as applicable.
 
 Note: The order creator can cancel their order at any time, even after a partial fill.
 
 #### Fees
 
-The Orderbook automatically deducts ERC-2981 royalty payments from the order **creator** when an order is filled.
+The Sequence Market automatically deducts ERC-2981 royalty payments from the order **creator** when an order is filled.
 
 Additional fees (e.g. platform fees) can be taken from the **acceptor** of an order by specifying a fee recipient address when accepting an order.
 
