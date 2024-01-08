@@ -3,18 +3,18 @@ pragma solidity 0.8.19;
 
 interface ISequenceMarketStorage {
   /**
-   * Order request parameters.
-   * @param isListing True if the order is a listing, false if it is an offer.
+   * Request parameters.
+   * @param isListing True if the request is a listing, false if it is an offer.
    * @param isERC1155 True if the token is an ERC1155 token, false if it is an ERC721 token.
    * @param tokenContract The address of the token contract.
    * @param tokenId The ID of the token.
    * @param quantity The quantity of tokens.
-   * @param expiry The expiry of the order.
+   * @param expiry The expiry of the request.
    * @param currency The address of the currency.
    * @param pricePerToken The price per token, including royalty fees.
    */
-  struct OrderRequest {
-    bool isListing; // True if the order is a listing, false if it is an offer.
+  struct RequestParams {
+    bool isListing; // True if the request is a listing, false if it is an offer.
     bool isERC1155; // True if the token is an ERC1155 token, false if it is an ERC721 token.
     address tokenContract;
     uint256 tokenId;
@@ -25,18 +25,18 @@ interface ISequenceMarketStorage {
   }
 
   /**
-   * Order parameters.
-   * @param creator The address of the order creator.
-   * @param isListing True if the order is a listing, false if it is an offer.
+   * Request storage.
+   * @param creator The address of the request creator.
+   * @param isListing True if the request is a listing, false if it is an offer.
    * @param isERC1155 True if the token is an ERC1155 token, false if it is an ERC721 token.
    * @param tokenContract The address of the token contract.
    * @param tokenId The ID of the token.
    * @param quantity The quantity of tokens.
-   * @param expiry The expiry of the order.
+   * @param expiry The expiry of the request.
    * @param currency The address of the currency.
    * @param pricePerToken The price per token, including royalty fees.
    */
-  struct Order {
+  struct Request {
     address creator;
     bool isListing;
     bool isERC1155;
@@ -62,30 +62,30 @@ interface ISequenceMarketStorage {
 
 interface ISequenceMarketFunctions is ISequenceMarketStorage {
   /**
-   * Creates an order.
-   * @param request The requested order's details.
-   * @return orderId The ID of the order.
+   * Creates a request.
+   * @param request The request's details.
+   * @return requestId The ID of the request.
    * @notice A listing is when the maker is selling tokens for currency.
    * @notice An offer is when the maker is buying tokens with currency.
    */
-  function createOrder(OrderRequest calldata request) external returns (uint256 orderId);
+  function createRequest(RequestParams calldata request) external returns (uint256 requestId);
 
   /**
-   * Creates orders.
-   * @param requests The requested orders' details.
-   * @return orderIds The IDs of the orders.
+   * Creates requests.
+   * @param requests The requests' details.
+   * @return requestIds The IDs of the requests.
    */
-  function createOrderBatch(OrderRequest[] calldata requests) external returns (uint256[] memory orderIds);
+  function createRequestBatch(RequestParams[] calldata requests) external returns (uint256[] memory requestIds);
 
   /**
-   * Accepts an order.
-   * @param orderId The ID of the order.
+   * Accepts a request.
+   * @param requestId The ID of the request.
    * @param quantity The quantity of tokens to accept.
    * @param additionalFees The additional fees to pay.
    * @param additionalFeeReceivers The addresses to send the additional fees to.
    */
-  function acceptOrder(
-    uint256 orderId,
+  function acceptRequest(
+    uint256 requestId,
     uint256 quantity,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
@@ -93,14 +93,14 @@ interface ISequenceMarketFunctions is ISequenceMarketStorage {
     external;
 
   /**
-   * Accepts orders.
-   * @param orderIds The IDs of the orders.
+   * Accepts requests.
+   * @param requestIds The IDs of the requests.
    * @param quantities The quantities of tokens to accept.
    * @param additionalFees The additional fees to pay.
    * @param additionalFeeReceivers The addresses to send the additional fees to.
    */
-  function acceptOrderBatch(
-    uint256[] calldata orderIds,
+  function acceptRequestBatch(
+    uint256[] calldata requestIds,
     uint256[] calldata quantities,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
@@ -108,53 +108,53 @@ interface ISequenceMarketFunctions is ISequenceMarketStorage {
     external;
 
   /**
-   * Cancels an order.
-   * @param orderId The ID of the order.
+   * Cancels a request.
+   * @param requestId The ID of the request.
    */
-  function cancelOrder(uint256 orderId) external;
+  function cancelRequest(uint256 requestId) external;
 
   /**
-   * Cancels orders.
-   * @param orderIds The IDs of the orders.
+   * Cancels requests.
+   * @param requestIds The IDs of the requests.
    */
-  function cancelOrderBatch(uint256[] calldata orderIds) external;
+  function cancelRequestBatch(uint256[] calldata requestIds) external;
 
   /**
-   * Gets an order.
-   * @param orderId The ID of the order.
-   * @return order The order.
+   * Gets a request.
+   * @param requestId The ID of the request.
+   * @return request The request.
    */
-  function getOrder(uint256 orderId) external view returns (Order memory order);
+  function getRequest(uint256 requestId) external view returns (Request memory request);
 
   /**
-   * Gets orders.
-   * @param orderIds The IDs of the orders.
-   * @return orders The orders.
+   * Gets requests.
+   * @param requestIds The IDs of the requests.
+   * @return requests The requests.
    */
-  function getOrderBatch(uint256[] calldata orderIds) external view returns (Order[] memory orders);
+  function getRequestBatch(uint256[] calldata requestIds) external view returns (Request[] memory requests);
 
   /**
-   * Checks if an order is valid.
-   * @param orderId The ID of the order.
-   * @param quantity The amount of tokens to exchange. 0 is assumed to be the order's available quantity.
-   * @return valid The validity of the order.
-   * @return order The order.
-   * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
+   * Checks if a request is valid.
+   * @param requestId The ID of the request.
+   * @param quantity The amount of tokens to exchange. 0 is assumed to be the request's available quantity.
+   * @return valid The validity of the request.
+   * @return request The request.
+   * @notice A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValid(uint256 orderId, uint256 quantity) external view returns (bool valid, Order memory order);
+  function isRequestValid(uint256 requestId, uint256 quantity) external view returns (bool valid, Request memory request);
 
   /**
-   * Checks if orders are valid.
-   * @param orderIds The IDs of the orders.
-   * @param quantities The amount of tokens to exchange per order. 0 is assumed to be the order's available quantity.
-   * @return valid The validities of the orders.
-   * @return orders The orders.
-   * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
+   * Checks if requests are valid.
+   * @param requestIds The IDs of the requests.
+   * @param quantities The amount of tokens to exchange per request. 0 is assumed to be the request's available quantity.
+   * @return valid The validities of the requests.
+   * @return requests The requests.
+   * @notice A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValidBatch(uint256[] calldata orderIds, uint256[] calldata quantities)
+  function isRequestValidBatch(uint256[] calldata requestIds, uint256[] calldata quantities)
     external
     view
-    returns (bool[] memory valid, Order[] memory orders);
+    returns (bool[] memory valid, Request[] memory requests);
 
   /**
    * Returns the royalty details for the given token and cost.
@@ -175,9 +175,9 @@ interface ISequenceMarketSignals {
   // Events
   //
 
-  /// Emitted when an Order is created.
-  event OrderCreated(
-    uint256 indexed orderId,
+  /// Emitted when a request is created.
+  event RequestCreated(
+    uint256 indexed requestId,
     address indexed creator,
     address indexed tokenContract,
     uint256 tokenId,
@@ -188,17 +188,17 @@ interface ISequenceMarketSignals {
     uint256 expiry
   );
 
-  /// Emitted when an Order is accepted.
-  event OrderAccepted(
-    uint256 indexed orderId,
+  /// Emitted when a request is accepted.
+  event RequestAccepted(
+    uint256 indexed requestId,
     address indexed buyer,
     address indexed tokenContract,
     uint256 quantity,
     uint256 quantityRemaining
   );
 
-  /// Emitted when an Order is cancelled.
-  event OrderCancelled(uint256 indexed orderId, address indexed tokenContract);
+  /// Emitted when a request is cancelled.
+  event RequestCancelled(uint256 indexed requestId, address indexed tokenContract);
 
   /// Emitted when custom royalty settings are changed.
   event CustomRoyaltyChanged(address indexed tokenContract, address recipient, uint96 fee);
@@ -219,8 +219,8 @@ interface ISequenceMarketSignals {
   /// Thrown when the currency approval is invalid.
   error InvalidCurrencyApproval(address currency, uint256 quantity, address owner);
 
-  /// Thrown when order id is invalid.
-  error InvalidOrderId(uint256 orderId);
+  /// Thrown when request id is invalid.
+  error InvalidRequestId(uint256 requestId);
 
   /// Thrown when the parameters of a batch accept request are invalid.
   error InvalidBatchRequest();
