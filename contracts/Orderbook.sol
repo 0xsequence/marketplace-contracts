@@ -73,7 +73,6 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
       uint256 total = quantity * request.pricePerToken;
       (, uint256 royaltyAmount) = getRoyaltyInfo(tokenContract, request.tokenId, total);
       total += royaltyAmount;
-      getRoyaltyInfo(tokenContract, request.tokenId, total);
       if (!_hasApprovedCurrency(request.currency, total, msg.sender)) {
         revert InvalidCurrencyApproval(request.currency, total, msg.sender);
       }
