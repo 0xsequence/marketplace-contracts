@@ -12,43 +12,43 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
-  mapping(uint256 => Order) internal _orders;
+  mapping(uint256 => Request) internal _requests;
   mapping(address => CustomRoyalty) public customRoyalties;
 
-  uint256 private _nextOrderId;
+  uint256 private _nextRequestId;
 
   constructor(address _owner) {
     _transferOwnership(_owner);
   }
 
   /**
-   * Creates an order.
-   * @param request The requested order's details.
-   * @return orderId The ID of the order.
+   * Creates a request.
+   * @param request The request's details.
+   * @return requestId The ID of the request.
    */
-  function createOrder(OrderRequest calldata request) external nonReentrant returns (uint256 orderId) {
-    return _createOrder(request);
+  function createRequest(RequestParams calldata request) external nonReentrant returns (uint256 requestId) {
+    return _createRequest(request);
   }
 
   /**
-   * Creates orders.
-   * @param requests The requested orders' details.
-   * @return orderIds The IDs of the orders.
+   * Creates requests.
+   * @param requests The requests' details.
+   * @return requestIds The IDs of the requests.
    */
-  function createOrderBatch(OrderRequest[] calldata requests) external nonReentrant returns (uint256[] memory orderIds) {
+  function createRequestBatch(RequestParams[] calldata requests) external nonReentrant returns (uint256[] memory requestIds) {
     uint256 len = requests.length;
-    orderIds = new uint256[](len);
+    requestIds = new uint256[](len);
     for (uint256 i; i < len; i++) {
-      orderIds[i] = _createOrder(requests[i]);
+      requestIds[i] = _createRequest(requests[i]);
     }
   }
 
   /**
-   * Performs creation of an order.
-   * @param request The requested order's details.
-   * @return orderId The ID of the order.
+   * Performs creation of a request.
+   * @param request The request's details.
+   * @return requestId The ID of the request.
    */
-  function _createOrder(OrderRequest calldata request) internal returns (uint256 orderId) {
+  function _createRequest(RequestParams calldata request) internal returns (uint256 requestId) {
     uint256 quantity = request.quantity;
     address tokenContract = request.tokenContract;
 
@@ -82,7 +82,7 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
       }
     }
 
-    Order memory order = Order({
+    Request memory request = Request({
       isListing: request.isListing,
       isERC1155: request.isERC1155,
       creator: msg.sender,
@@ -94,12 +94,12 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
       expiry: request.expiry
     });
 
-    orderId = uint256(_nextOrderId);
-    _nextOrderId++;
-    _orders[orderId] = order;
+    requestId = uint256(_nextRequestId);
+    _nextRequestId++;
+    _requests[requestId] = request;
 
-    emit OrderCreated(
-      orderId,
+    emit RequestCreated(
+      requestId,
       msg.sender,
       tokenContract,
       request.tokenId,
@@ -110,18 +110,18 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
       request.expiry
       );
 
-    return orderId;
+    return requestId;
   }
 
   /**
-   * Accepts an order.
-   * @param orderId The ID of the order.
+   * Accepts a request.
+   * @param requestId The ID of the request.
    * @param quantity The quantity of tokens to accept.
    * @param additionalFees The additional fees to pay.
    * @param additionalFeeReceivers The addresses to send the additional fees to.
    */
-  function acceptOrder(
-    uint256 orderId,
+  function acceptRequest(
+    uint256 requestId,
     uint256 quantity,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
@@ -129,19 +129,19 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     external
     nonReentrant
   {
-    _acceptOrder(orderId, quantity, additionalFees, additionalFeeReceivers);
+    _acceptRequest(requestId, quantity, additionalFees, additionalFeeReceivers);
   }
 
   /**
-   * Accepts orders.
-   * @param orderIds The IDs of the orders.
+   * Accepts requests.
+   * @param requestIds The IDs of the requests.
    * @param quantities The quantities of tokens to accept.
    * @param additionalFees The additional fees to pay.
    * @param additionalFeeReceivers The addresses to send the additional fees to.
-   * @dev Additional fees are applied to each order.
+   * @dev Additional fees are applied to each request.
    */
-  function acceptOrderBatch(
-    uint256[] calldata orderIds,
+  function acceptRequestBatch(
+    uint256[] calldata requestIds,
     uint256[] calldata quantities,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
@@ -149,64 +149,64 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     external
     nonReentrant
   {
-    uint256 len = orderIds.length;
+    uint256 len = requestIds.length;
     if (len != quantities.length) {
       revert InvalidBatchRequest();
     }
 
     for (uint256 i; i < len; i++) {
-      _acceptOrder(orderIds[i], quantities[i], additionalFees, additionalFeeReceivers);
+      _acceptRequest(requestIds[i], quantities[i], additionalFees, additionalFeeReceivers);
     }
   }
 
   /**
-   * Performs acceptance of an order.
-   * @param orderId The ID of the order.
+   * Performs acceptance of a request.
+   * @param requestId The ID of the request.
    * @param quantity The quantity of tokens to accept.
    * @param additionalFees The additional fees to pay.
    * @param additionalFeeReceivers The addresses to send the additional fees to.
    */
-  function _acceptOrder(
-    uint256 orderId,
+  function _acceptRequest(
+    uint256 requestId,
     uint256 quantity,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
   )
     internal
   {
-    Order memory order = _orders[orderId];
-    if (order.creator == address(0)) {
-      // Order cancelled, completed or never existed
-      revert InvalidOrderId(orderId);
+    Request memory request = _requests[requestId];
+    if (request.creator == address(0)) {
+      // Request cancelled, completed or never existed
+      revert InvalidRequestId(requestId);
     }
-    if (quantity == 0 || quantity > order.quantity) {
+    if (quantity == 0 || quantity > request.quantity) {
       revert InvalidQuantity();
     }
-    if (_isExpired(order)) {
+    if (_isExpired(request)) {
       revert InvalidExpiry();
     }
     if (additionalFees.length != additionalFeeReceivers.length) {
       revert InvalidAdditionalFees();
     }
 
-    // Update order state
-    if (order.quantity == quantity) {
+    // Update request state
+    if (request.quantity == quantity) {
       // Refund some gas
-      delete _orders[orderId];
+      delete _requests[requestId];
     } else {
-      _orders[orderId].quantity -= quantity;
+      _requests[requestId].quantity -= quantity;
     }
-    address tokenContract = order.tokenContract;
+    address tokenContract = request.tokenContract;
 
     // Calculate payables
-    uint256 remainingCost = order.pricePerToken * quantity;
-    (address royaltyRecipient, uint256 royaltyAmount) = getRoyaltyInfo(tokenContract, order.tokenId, remainingCost);
+    uint256 remainingCost = request.pricePerToken * quantity;
+    (address royaltyRecipient, uint256 royaltyAmount) = getRoyaltyInfo(tokenContract, request.tokenId, remainingCost);
 
-    address currencyReceiver = order.isListing ? order.creator : msg.sender;
-    address tokenReceiver = order.isListing ? msg.sender : order.creator;
+    address currencyReceiver = request.isListing ? request.creator : msg.sender;
+    address tokenReceiver = request.isListing ? msg.sender : request.creator;
 
     if (royaltyAmount > 0) {
-      if (order.isListing) {
+      if (request.isListing) {
         // Royalties are paid by the maker. This reduces the cost for listings.
         // Underflow prevents fees > cost
         remainingCost -= royaltyAmount;
@@ -215,7 +215,7 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
         revert InvalidRoyalty();
       }
       // Transfer royalties
-      TransferHelper.safeTransferFrom(order.currency, tokenReceiver, royaltyRecipient, royaltyAmount);
+      TransferHelper.safeTransferFrom(request.currency, tokenReceiver, royaltyRecipient, royaltyAmount);
     }
 
     // Transfer additional fees
@@ -227,9 +227,9 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
         revert InvalidAdditionalFees();
       }
       totalFees += fee;
-      TransferHelper.safeTransferFrom(order.currency, tokenReceiver, feeReceiver, fee);
+      TransferHelper.safeTransferFrom(request.currency, tokenReceiver, feeReceiver, fee);
     }
-    if (!order.isListing) {
+    if (!request.isListing) {
       // Fees are paid by the taker. This reduces the cost for offers.
       // Underflow prevents fees > cost
       remainingCost -= totalFees;
@@ -239,135 +239,135 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     }
 
     // Transfer currency
-    TransferHelper.safeTransferFrom(order.currency, tokenReceiver, currencyReceiver, remainingCost);
+    TransferHelper.safeTransferFrom(request.currency, tokenReceiver, currencyReceiver, remainingCost);
 
     // Transfer token
-    if (order.isERC1155) {
-      IERC1155(tokenContract).safeTransferFrom(currencyReceiver, tokenReceiver, order.tokenId, quantity, "");
+    if (request.isERC1155) {
+      IERC1155(tokenContract).safeTransferFrom(currencyReceiver, tokenReceiver, request.tokenId, quantity, "");
     } else {
-      IERC721(tokenContract).safeTransferFrom(currencyReceiver, tokenReceiver, order.tokenId);
+      IERC721(tokenContract).safeTransferFrom(currencyReceiver, tokenReceiver, request.tokenId);
     }
 
-    emit OrderAccepted(orderId, msg.sender, tokenContract, quantity, _orders[orderId].quantity);
+    emit RequestAccepted(requestId, msg.sender, tokenContract, quantity, _requests[requestId].quantity);
   }
 
   /**
-   * Cancels an order.
-   * @param orderId The ID of the order.
+   * Cancels a request.
+   * @param requestId The ID of the request.
    */
-  function cancelOrder(uint256 orderId) external nonReentrant {
-    _cancelOrder(orderId);
+  function cancelRequest(uint256 requestId) external nonReentrant {
+    _cancelRequest(requestId);
   }
 
   /**
-   * Cancels orders.
-   * @param orderIds The IDs of the orders.
+   * Cancels requests.
+   * @param requestIds The IDs of the requests.
    */
-  function cancelOrderBatch(uint256[] calldata orderIds) external nonReentrant {
-    for (uint256 i; i < orderIds.length; i++) {
-      _cancelOrder(orderIds[i]);
+  function cancelRequestBatch(uint256[] calldata requestIds) external nonReentrant {
+    for (uint256 i; i < requestIds.length; i++) {
+      _cancelRequest(requestIds[i]);
     }
   }
 
   /**
-   * Performs cancellation of an order.
-   * @param orderId The ID of the order.
+   * Performs cancellation of a request.
+   * @param requestId The ID of the request.
    */
-  function _cancelOrder(uint256 orderId) internal {
-    Order storage order = _orders[orderId];
-    if (order.creator != msg.sender) {
-      revert InvalidOrderId(orderId);
+  function _cancelRequest(uint256 requestId) internal {
+    Request storage request = _requests[requestId];
+    if (request.creator != msg.sender) {
+      revert InvalidRequestId(requestId);
     }
-    address tokenContract = order.tokenContract;
+    address tokenContract = request.tokenContract;
 
     // Refund some gas
-    delete _orders[orderId];
+    delete _requests[requestId];
 
-    emit OrderCancelled(orderId, tokenContract);
+    emit RequestCancelled(requestId, tokenContract);
   }
 
   /**
-   * Gets an order.
-   * @param orderId The ID of the order.
-   * @return order The order.
+   * Gets a request.
+   * @param requestId The ID of the request.
+   * @return request The request.
    */
-  function getOrder(uint256 orderId) external view returns (Order memory order) {
-    return _orders[orderId];
+  function getRequest(uint256 requestId) external view returns (Request memory request) {
+    return _requests[requestId];
   }
 
   /**
-   * Gets orders.
-   * @param orderIds The IDs of the orders.
-   * @return orders The orders.
+   * Gets requests.
+   * @param requestIds The IDs of the requests.
+   * @return requests The requests.
    */
-  function getOrderBatch(uint256[] calldata orderIds) external view returns (Order[] memory orders) {
-    uint256 len = orderIds.length;
-    orders = new Order[](len);
+  function getRequestBatch(uint256[] calldata requestIds) external view returns (Request[] memory requests) {
+    uint256 len = requestIds.length;
+    requests = new Request[](len);
     for (uint256 i; i < len; i++) {
-      orders[i] = _orders[orderIds[i]];
+      requests[i] = _requests[requestIds[i]];
     }
   }
 
   /**
-   * Checks if an order is valid.
-   * @param orderId The ID of the order.
-   * @param quantity The amount of tokens to exchange. 0 is assumed to be the order's available quantity.
-   * @return valid The validity of the order.
-   * @return order The order.
-   * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
+   * Checks if a request is valid.
+   * @param requestId The ID of the request.
+   * @param quantity The amount of tokens to exchange. 0 is assumed to be the request's available quantity.
+   * @return valid The validity of the request.
+   * @return request The request.
+   * @notice A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValid(uint256 orderId, uint256 quantity) public view returns (bool valid, Order memory order) {
-    order = _orders[orderId];
+  function isRequestValid(uint256 requestId, uint256 quantity) public view returns (bool valid, Request memory request) {
+    request = _requests[requestId];
     if (quantity == 0) {
       // 0 is assumed to be max quantity
-      quantity = order.quantity;
+      quantity = request.quantity;
     }
-    valid = order.creator != address(0) && !_isExpired(order) && quantity <= order.quantity;
+    valid = request.creator != address(0) && !_isExpired(request) && quantity <= request.quantity;
     if (valid) {
-      if (order.isListing) {
-        valid = _hasApprovedTokens(order.isERC1155, order.tokenContract, order.tokenId, quantity, order.creator);
+      if (request.isListing) {
+        valid = _hasApprovedTokens(request.isERC1155, request.tokenContract, request.tokenId, quantity, request.creator);
       } else {
         // Add royalty
-        uint256 cost = order.pricePerToken * quantity;
-        (, uint256 royaltyAmount) = getRoyaltyInfo(order.tokenContract, order.tokenId, cost);
-        valid = _hasApprovedCurrency(order.currency, cost + royaltyAmount, order.creator);
+        uint256 cost = request.pricePerToken * quantity;
+        (, uint256 royaltyAmount) = getRoyaltyInfo(request.tokenContract, request.tokenId, cost);
+        valid = _hasApprovedCurrency(request.currency, cost + royaltyAmount, request.creator);
       }
     }
-    return (valid, order);
+    return (valid, request);
   }
 
   /**
-   * Checks if orders are valid.
-   * @param orderIds The IDs of the orders.
-   * @param quantities The amount of tokens to exchange per order. 0 is assumed to be the order's available quantity.
-   * @return valid The validities of the orders.
-   * @return orders The orders.
-   * @notice An order is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
+   * Checks if requests are valid.
+   * @param requestIds The IDs of the requests.
+   * @param quantities The amount of tokens to exchange per request. 0 is assumed to be the request's available quantity.
+   * @return valid The validities of the requests.
+   * @return requests The requests.
+   * @notice A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
    */
-  function isOrderValidBatch(uint256[] calldata orderIds, uint256[] calldata quantities)
+  function isRequestValidBatch(uint256[] calldata requestIds, uint256[] calldata quantities)
     external
     view
-    returns (bool[] memory valid, Order[] memory orders)
+    returns (bool[] memory valid, Request[] memory requests)
   {
-    uint256 len = orderIds.length;
+    uint256 len = requestIds.length;
     if (len != quantities.length) {
       revert InvalidBatchRequest();
     }
     valid = new bool[](len);
-    orders = new Order[](len);
+    requests = new Request[](len);
     for (uint256 i; i < len; i++) {
-      (valid[i], orders[i]) = isOrderValid(orderIds[i], quantities[i]);
+      (valid[i], requests[i]) = isRequestValid(requestIds[i], quantities[i]);
     }
   }
 
   /**
-   * Checks if a order has expired.
-   * @param order The order to check.
-   * @return isExpired True if the order has expired.
+   * Checks if a request has expired.
+   * @param request The request to check.
+   * @return isExpired True if the request has expired.
    */
-  function _isExpired(Order memory order) internal view returns (bool isExpired) {
+  function _isExpired(Request memory request) internal view returns (bool isExpired) {
     // solhint-disable-next-line not-rely-on-time
-    return order.expiry <= block.timestamp;
+    return request.expiry <= block.timestamp;
   }
 
   /**
