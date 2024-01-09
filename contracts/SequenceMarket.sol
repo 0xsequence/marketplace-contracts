@@ -45,56 +45,56 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
 
   /**
    * Performs creation of a request.
-   * @param request The request's details.
+   * @param params The request's params.
    * @return requestId The ID of the request.
    */
-  function _createRequest(RequestParams calldata request) internal returns (uint256 requestId) {
-    uint256 quantity = request.quantity;
-    address tokenContract = request.tokenContract;
+  function _createRequest(RequestParams calldata params) internal returns (uint256 requestId) {
+    uint256 quantity = params.quantity;
+    address tokenContract = params.tokenContract;
 
-    if (request.pricePerToken == 0) {
+    if (params.pricePerToken == 0) {
       revert InvalidPrice();
     }
     // solhint-disable-next-line not-rely-on-time
-    if (request.expiry <= block.timestamp) {
+    if (params.expiry <= block.timestamp) {
       revert InvalidExpiry();
     }
 
     // Check interfaces
-    _requireInterface(tokenContract, request.isERC1155 ? type(IERC1155).interfaceId : type(IERC721).interfaceId);
-    if (request.currency == address(0)) {
+    _requireInterface(tokenContract, params.isERC1155 ? type(IERC1155).interfaceId : type(IERC721).interfaceId);
+    if (params.currency == address(0)) {
       revert InvalidCurrency();
     }
 
-    if (request.isListing) {
+    if (params.isListing) {
       // Check valid token for listing
-      if (!_hasApprovedTokens(request.isERC1155, tokenContract, request.tokenId, quantity, msg.sender)) {
-        revert InvalidTokenApproval(tokenContract, request.tokenId, quantity, msg.sender);
+      if (!_hasApprovedTokens(params.isERC1155, tokenContract, params.tokenId, quantity, msg.sender)) {
+        revert InvalidTokenApproval(tokenContract, params.tokenId, quantity, msg.sender);
       }
     } else {
       // Check approved currency for offer inc royalty
-      uint256 total = quantity * request.pricePerToken;
-      (, uint256 royaltyAmount) = getRoyaltyInfo(tokenContract, request.tokenId, total);
+      uint256 total = quantity * params.pricePerToken;
+      (, uint256 royaltyAmount) = getRoyaltyInfo(tokenContract, params.tokenId, total);
       total += royaltyAmount;
-      if (!_hasApprovedCurrency(request.currency, total, msg.sender)) {
-        revert InvalidCurrencyApproval(request.currency, total, msg.sender);
+      if (!_hasApprovedCurrency(params.currency, total, msg.sender)) {
+        revert InvalidCurrencyApproval(params.currency, total, msg.sender);
       }
       // Check quantity. Covered by _hasApprovedTokens for listings
-      if ((request.isERC1155 && quantity == 0) || (!request.isERC1155 && quantity != 1)) {
+      if ((params.isERC1155 && quantity == 0) || (!params.isERC1155 && quantity != 1)) {
         revert InvalidQuantity();
       }
     }
 
     Request memory request = Request({
-      isListing: request.isListing,
-      isERC1155: request.isERC1155,
+      isListing: params.isListing,
+      isERC1155: params.isERC1155,
       creator: msg.sender,
       tokenContract: tokenContract,
-      tokenId: request.tokenId,
+      tokenId: params.tokenId,
       quantity: quantity,
-      currency: request.currency,
-      pricePerToken: request.pricePerToken,
-      expiry: request.expiry
+      currency: params.currency,
+      pricePerToken: params.pricePerToken,
+      expiry: params.expiry
     });
 
     requestId = uint256(_nextRequestId);
