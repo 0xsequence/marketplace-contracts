@@ -120,25 +120,28 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
    * Accepts a request.
    * @param requestId The ID of the request.
    * @param quantity The quantity of tokens to accept.
+   * @param receiver The receiver of the accepted tokens.
    * @param additionalFees The additional fees to pay.
    * @param additionalFeeReceivers The addresses to send the additional fees to.
    */
   function acceptRequest(
     uint256 requestId,
     uint256 quantity,
+    address receiver,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
   )
     external
     nonReentrant
   {
-    _acceptRequest(requestId, quantity, additionalFees, additionalFeeReceivers);
+    _acceptRequest(requestId, quantity, receiver, additionalFees, additionalFeeReceivers);
   }
 
   /**
    * Accepts requests.
    * @param requestIds The IDs of the requests.
    * @param quantities The quantities of tokens to accept.
+   * @param receivers The receivers of the accepted tokens.
    * @param additionalFees The additional fees to pay.
    * @param additionalFeeReceivers The addresses to send the additional fees to.
    * @dev Additional fees are applied to each request.
@@ -146,6 +149,7 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
   function acceptRequestBatch(
     uint256[] calldata requestIds,
     uint256[] calldata quantities,
+    address[] calldata receivers,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
   )
@@ -153,12 +157,12 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     nonReentrant
   {
     uint256 len = requestIds.length;
-    if (len != quantities.length) {
+    if (len != quantities.length || len != receivers.length) {
       revert InvalidBatchRequest();
     }
 
     for (uint256 i; i < len; i++) {
-      _acceptRequest(requestIds[i], quantities[i], additionalFees, additionalFeeReceivers);
+      _acceptRequest(requestIds[i], quantities[i], receivers[i], additionalFees, additionalFeeReceivers);
     }
   }
 
@@ -166,12 +170,14 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
    * Performs acceptance of a request.
    * @param requestId The ID of the request.
    * @param quantity The quantity of tokens to accept.
+   * @param receiver The receiver of the accepted tokens.
    * @param additionalFees The additional fees to pay.
    * @param additionalFeeReceivers The addresses to send the additional fees to.
    */
   function _acceptRequest(
     uint256 requestId,
     uint256 quantity,
+    address receiver,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
   )
@@ -205,8 +211,21 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     uint256 remainingCost = request.pricePerToken * quantity;
     (address royaltyRecipient, uint256 royaltyAmount) = getRoyaltyInfo(tokenContract, request.tokenId, remainingCost);
 
-    address currencyReceiver = request.isListing ? request.creator : msg.sender;
-    address tokenReceiver = request.isListing ? msg.sender : request.creator;
+    address currencySender;
+    address currencyReceiver;
+    address tokenSender;
+    address tokenReceiver;
+    if (request.isListing) {
+      currencySender = msg.sender;
+      currencyReceiver = request.creator;
+      tokenSender = request.creator;
+      tokenReceiver = receiver;
+    } else {
+      currencySender = request.creator;
+      currencyReceiver = receiver;
+      tokenSender = msg.sender;
+      tokenReceiver = request.creator;
+    }
 
     if (royaltyAmount > 0) {
       if (request.isListing) {
@@ -218,7 +237,7 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
         revert InvalidRoyalty();
       }
       // Transfer royalties
-      TransferHelper.safeTransferFrom(request.currency, tokenReceiver, royaltyRecipient, royaltyAmount);
+      TransferHelper.safeTransferFrom(request.currency, currencySender, royaltyRecipient, royaltyAmount);
     }
 
     // Transfer additional fees
@@ -230,7 +249,7 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
         revert InvalidAdditionalFees();
       }
       totalFees += fee;
-      TransferHelper.safeTransferFrom(request.currency, tokenReceiver, feeReceiver, fee);
+      TransferHelper.safeTransferFrom(request.currency, currencySender, feeReceiver, fee);
     }
     if (!request.isListing) {
       // Fees are paid by the taker. This reduces the cost for offers.
@@ -242,16 +261,16 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     }
 
     // Transfer currency
-    TransferHelper.safeTransferFrom(request.currency, tokenReceiver, currencyReceiver, remainingCost);
+    TransferHelper.safeTransferFrom(request.currency, currencySender, currencyReceiver, remainingCost);
 
     // Transfer token
     if (request.isERC1155) {
-      IERC1155(tokenContract).safeTransferFrom(currencyReceiver, tokenReceiver, request.tokenId, quantity, "");
+      IERC1155(tokenContract).safeTransferFrom(tokenSender, tokenReceiver, request.tokenId, quantity, "");
     } else {
-      IERC721(tokenContract).safeTransferFrom(currencyReceiver, tokenReceiver, request.tokenId);
+      IERC721(tokenContract).safeTransferFrom(tokenSender, tokenReceiver, request.tokenId);
     }
 
-    emit RequestAccepted(requestId, msg.sender, tokenContract, quantity, _requests[requestId].quantity);
+    emit RequestAccepted(requestId, msg.sender, tokenContract, receiver, quantity, _requests[requestId].quantity);
   }
 
   /**

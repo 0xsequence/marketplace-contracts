@@ -81,12 +81,14 @@ interface ISequenceMarketFunctions is ISequenceMarketStorage {
    * Accepts a request.
    * @param requestId The ID of the request.
    * @param quantity The quantity of tokens to accept.
+   * @param receiver The receiver of the accepted tokens.
    * @param additionalFees The additional fees to pay.
    * @param additionalFeeReceivers The addresses to send the additional fees to.
    */
   function acceptRequest(
     uint256 requestId,
     uint256 quantity,
+    address receiver,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
   )
@@ -96,12 +98,15 @@ interface ISequenceMarketFunctions is ISequenceMarketStorage {
    * Accepts requests.
    * @param requestIds The IDs of the requests.
    * @param quantities The quantities of tokens to accept.
+   * @param receivers The receivers of the accepted tokens.
    * @param additionalFees The additional fees to pay.
    * @param additionalFeeReceivers The addresses to send the additional fees to.
+   * @dev Additional fees are applied to each request.
    */
   function acceptRequestBatch(
     uint256[] calldata requestIds,
     uint256[] calldata quantities,
+    address[] calldata receivers,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeReceivers
   )
@@ -193,6 +198,7 @@ interface ISequenceMarketSignals {
     uint256 indexed requestId,
     address indexed buyer,
     address indexed tokenContract,
+    address receiver,
     uint256 quantity,
     uint256 quantityRemaining
   );
