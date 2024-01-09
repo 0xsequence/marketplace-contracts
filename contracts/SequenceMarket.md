@@ -82,13 +82,13 @@ Performs creation of a request.
 
 
 ```solidity
-function _createRequest(RequestParams calldata request) internal returns (uint256 requestId);
+function _createRequest(RequestParams calldata params) internal returns (uint256 requestId);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`request`|`RequestParams`|The request's details.|
+|`params`|`RequestParams`|The request's params.|
 
 **Returns**
 
