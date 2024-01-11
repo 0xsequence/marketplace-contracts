@@ -62,6 +62,9 @@ contract Orderbook is IOrderbook, Ownable, ReentrancyGuard {
 
     // Check interfaces
     _requireInterface(tokenContract, request.isERC1155 ? type(IERC1155).interfaceId : type(IERC721).interfaceId);
+    if (request.currency == address(0)) {
+      revert InvalidCurrency();
+    }
 
     if (request.isListing) {
       // Check valid token for listing

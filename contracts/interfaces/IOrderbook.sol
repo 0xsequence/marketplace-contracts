@@ -213,6 +213,9 @@ interface IOrderbookSignals {
   /// Thrown when the token approval is invalid.
   error InvalidTokenApproval(address tokenContract, uint256 tokenId, uint256 quantity, address owner);
 
+  /// Thrown when the currency address is invalid.
+  error InvalidCurrency();
+
   /// Thrown when the currency approval is invalid.
   error InvalidCurrencyApproval(address currency, uint256 quantity, address owner);
 

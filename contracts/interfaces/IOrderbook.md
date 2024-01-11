@@ -397,6 +397,14 @@ Thrown when the token approval is invalid.
 error InvalidTokenApproval(address tokenContract, uint256 tokenId, uint256 quantity, address owner);
 ```
 
+### InvalidCurrency
+Thrown when the currency address is invalid.
+
+
+```solidity
+error InvalidCurrency();
+```
+
 ### InvalidCurrencyApproval
 Thrown when the currency approval is invalid.
 

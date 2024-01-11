@@ -198,6 +198,15 @@ contract OrderbookTest is IOrderbookSignals, IOrderbookStorage, ReentrancyGuard,
     return orderId;
   }
 
+  function test_createListing_invalidCurrency(OrderRequest memory request) external {
+    _fixRequest(request, true);
+    request.currency = address(0);
+
+    vm.prank(TOKEN_OWNER);
+    vm.expectRevert(InvalidCurrency.selector);
+    orderbook.createOrder(request);
+  }
+
   function test_createListing_invalidToken(OrderRequest memory request, address badContract) external {
     vm.assume(badContract != address(erc1155) && badContract != address(erc721));
     _assumeNotPrecompile(badContract);
