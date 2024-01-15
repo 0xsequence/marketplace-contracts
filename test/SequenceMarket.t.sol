@@ -75,11 +75,11 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
   address private constant MARKET_OWNER = address(uint160(uint256(keccak256("market_owner"))));
   address private constant TOKEN_OWNER = address(uint160(uint256(keccak256("token_owner"))));
   address private constant CURRENCY_OWNER = address(uint160(uint256(keccak256("currency_owner"))));
-  address private constant ROYALTY_RECEIVER = address(uint160(uint256(keccak256("royalty_receiver"))));
-  address private constant FEE_RECEIVER = address(uint160(uint256(keccak256("fee_receiver"))));
+  address private constant ROYALTY_RECIPIENT = address(uint160(uint256(keccak256("royalty_recipient"))));
+  address private constant FEE_RECIPIENT = address(uint160(uint256(keccak256("fee_recipient"))));
 
   uint256[] private emptyFees;
-  address[] private emptyFeeReceivers;
+  address[] private emptyFeeRecipients;
 
   uint256 private expectedNextRequestId;
 
@@ -115,9 +115,9 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     // Royalty
     erc1155.setFee(ROYALTY_FEE);
-    erc1155.setFeeRecipient(ROYALTY_RECEIVER);
+    erc1155.setFeeRecipient(ROYALTY_RECIPIENT);
     erc721.setFee(ROYALTY_FEE);
-    erc721.setFeeRecipient(ROYALTY_RECEIVER);
+    erc721.setFeeRecipient(ROYALTY_RECIPIENT);
   }
 
   //
@@ -317,10 +317,10 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
   //
   // Accept Listing
   //
-  function test_acceptListing(RequestParams memory request, address receiver) public returns (uint256 requestId) {
+  function test_acceptListing(RequestParams memory request, address recipient) public returns (uint256 requestId) {
     uint256 erc20BalCurrency = erc20.balanceOf(CURRENCY_OWNER);
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
-    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
+    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECIPIENT);
 
     requestId = test_createListing(request);
 
@@ -328,18 +328,18 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     uint256 royalty = (totalPrice * ROYALTY_FEE) / 10_000;
 
     vm.expectEmit(true, true, true, true, address(market));
-    emit RequestAccepted(requestId, CURRENCY_OWNER, request.tokenContract, receiver, request.quantity, 0);
+    emit RequestAccepted(requestId, CURRENCY_OWNER, request.tokenContract, recipient, request.quantity, 0);
     vm.prank(CURRENCY_OWNER);
-    market.acceptRequest(requestId, request.quantity, receiver, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, request.quantity, recipient, emptyFees, emptyFeeRecipients);
 
     if (request.isERC1155) {
-      assertEq(erc1155.balanceOf(receiver, TOKEN_ID), request.quantity);
+      assertEq(erc1155.balanceOf(recipient, TOKEN_ID), request.quantity);
     } else {
-      assertEq(erc721.ownerOf(TOKEN_ID), receiver);
+      assertEq(erc721.ownerOf(TOKEN_ID), recipient);
     }
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice);
     assertEq(erc20.balanceOf(TOKEN_OWNER), erc20BalTokenOwner + totalPrice - royalty);
-    assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty);
+    assertEq(erc20.balanceOf(ROYALTY_RECIPIENT), erc20BalRoyal + royalty);
 
     return requestId;
   }
@@ -356,10 +356,10 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
         mstore(additionalFees, 3)
       }
     }
-    address[] memory additionalFeeReceivers = new address[](additionalFees.length);
+    address[] memory additionalFeeRecipients = new address[](additionalFees.length);
     uint256 totalFees;
     for (uint256 i; i < additionalFees.length; i++) {
-      additionalFeeReceivers[i] = FEE_RECEIVER;
+      additionalFeeRecipients[i] = FEE_RECIPIENT;
       additionalFees[i] = bound(additionalFees[i], 1, 0.2 ether);
       totalFees += additionalFees[i];
     }
@@ -367,14 +367,14 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     uint256 erc20BalCurrency = erc20.balanceOf(CURRENCY_OWNER);
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
-    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
+    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECIPIENT);
 
     uint256 requestId = test_createListing(request);
 
     vm.expectEmit(true, true, true, true, address(market));
     emit RequestAccepted(requestId, CURRENCY_OWNER, request.tokenContract, CURRENCY_OWNER, request.quantity, 0);
     vm.prank(CURRENCY_OWNER);
-    market.acceptRequest(requestId, request.quantity, CURRENCY_OWNER, additionalFees, additionalFeeReceivers);
+    market.acceptRequest(requestId, request.quantity, CURRENCY_OWNER, additionalFees, additionalFeeRecipients);
 
     if (request.isERC1155) {
       assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
@@ -383,9 +383,9 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     }
     // Fees paid by taker
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice - totalFees);
-    assertEq(erc20.balanceOf(FEE_RECEIVER), totalFees); // Assume no starting value
+    assertEq(erc20.balanceOf(FEE_RECIPIENT), totalFees); // Assume no starting value
     assertEq(erc20.balanceOf(TOKEN_OWNER), erc20BalTokenOwner + totalPrice - royalty);
-    assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty);
+    assertEq(erc20.balanceOf(ROYALTY_RECIPIENT), erc20BalRoyal + royalty);
   }
 
   function test_acceptListing_invalidAdditionalFees(RequestParams memory params) external {
@@ -393,33 +393,33 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     // Zero fee
     uint256[] memory additionalFees = new uint256[](1);
-    address[] memory additionalFeeReceivers = new address[](1);
-    additionalFeeReceivers[0] = FEE_RECEIVER;
+    address[] memory additionalFeeRecipients = new address[](1);
+    additionalFeeRecipients[0] = FEE_RECIPIENT;
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(InvalidAdditionalFees.selector);
-    market.acceptRequest(requestId, 1, CURRENCY_OWNER, additionalFees, additionalFeeReceivers);
+    market.acceptRequest(requestId, 1, CURRENCY_OWNER, additionalFees, additionalFeeRecipients);
 
     // Fee exceeds cost
     Request memory request = market.getRequest(requestId);
     additionalFees[0] = request.pricePerToken * request.quantity + 1;
     vm.expectRevert(InvalidAdditionalFees.selector);
     vm.prank(CURRENCY_OWNER);
-    market.acceptRequest(requestId, request.quantity, CURRENCY_OWNER, additionalFees, additionalFeeReceivers);
+    market.acceptRequest(requestId, request.quantity, CURRENCY_OWNER, additionalFees, additionalFeeRecipients);
 
     // Zero address
     additionalFees[0] = 1 ether;
-    additionalFeeReceivers[0] = address(0);
+    additionalFeeRecipients[0] = address(0);
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(InvalidAdditionalFees.selector);
-    market.acceptRequest(requestId, 1, CURRENCY_OWNER, additionalFees, additionalFeeReceivers);
+    market.acceptRequest(requestId, 1, CURRENCY_OWNER, additionalFees, additionalFeeRecipients);
 
-    // Invalid length (larger receivers)
-    additionalFeeReceivers = new address[](2);
-    additionalFeeReceivers[0] = FEE_RECEIVER;
-    additionalFeeReceivers[1] = FEE_RECEIVER;
+    // Invalid length (larger recipients)
+    additionalFeeRecipients = new address[](2);
+    additionalFeeRecipients[0] = FEE_RECIPIENT;
+    additionalFeeRecipients[1] = FEE_RECIPIENT;
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(InvalidAdditionalFees.selector);
-    market.acceptRequest(requestId, 1, CURRENCY_OWNER, additionalFees, additionalFeeReceivers);
+    market.acceptRequest(requestId, 1, CURRENCY_OWNER, additionalFees, additionalFeeRecipients);
 
     // Invalid length (larger fees)
     additionalFees = new uint256[](3);
@@ -428,7 +428,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     additionalFees[2] = 3;
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(InvalidAdditionalFees.selector);
-    market.acceptRequest(requestId, 1, CURRENCY_OWNER, additionalFees, additionalFeeReceivers);
+    market.acceptRequest(requestId, 1, CURRENCY_OWNER, additionalFees, additionalFeeRecipients);
   }
 
   function test_acceptListing_invalidRoyalties(RequestParams memory request) external {
@@ -444,7 +444,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     }
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(stdError.arithmeticError);
-    market.acceptRequest(requestId, 1, CURRENCY_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 1, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
 
     // 100% is ok
     if (request.isERC1155) {
@@ -453,7 +453,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
       erc721.setFee(10_000);
     }
     vm.prank(CURRENCY_OWNER);
-    market.acceptRequest(requestId, 1, CURRENCY_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 1, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
   }
 
   function test_acceptListing_invalidQuantity_zero(RequestParams memory request) external {
@@ -461,7 +461,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(InvalidQuantity.selector);
-    market.acceptRequest(requestId, 0, CURRENCY_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 0, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
   }
 
   function test_acceptListing_invalidQuantity_tooHigh(RequestParams memory request) external {
@@ -469,7 +469,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(InvalidQuantity.selector);
-    market.acceptRequest(requestId, request.quantity + 1, CURRENCY_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, request.quantity + 1, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
   }
 
   function test_acceptListing_invalidExpiry(RequestParams memory request, bool over) external {
@@ -479,7 +479,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(InvalidExpiry.selector);
-    market.acceptRequest(requestId, request.quantity, CURRENCY_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, request.quantity, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
   }
 
   function test_acceptListing_twice(RequestParams memory request) external {
@@ -496,23 +496,23 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     uint256 erc20BalCurrency = erc20.balanceOf(CURRENCY_OWNER);
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
-    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
+    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECIPIENT);
 
     uint256 requestId = test_createListing(request);
 
     vm.startPrank(CURRENCY_OWNER);
     vm.expectEmit(true, true, true, true, address(market));
     emit RequestAccepted(requestId, CURRENCY_OWNER, address(erc1155), CURRENCY_OWNER, request.quantity / 2, request.quantity / 2);
-    market.acceptRequest(requestId, request.quantity / 2, CURRENCY_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, request.quantity / 2, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
     vm.expectEmit(true, true, true, true, address(market));
     emit RequestAccepted(requestId, CURRENCY_OWNER, address(erc1155), CURRENCY_OWNER, request.quantity / 2, 0);
-    market.acceptRequest(requestId, request.quantity / 2, CURRENCY_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, request.quantity / 2, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
     vm.stopPrank();
 
     assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice);
     assertEq(erc20.balanceOf(TOKEN_OWNER), erc20BalTokenOwner + totalPrice - royalty);
-    assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty);
+    assertEq(erc20.balanceOf(ROYALTY_RECIPIENT), erc20BalRoyal + royalty);
   }
 
   function test_acceptListingBatch_repeat(RequestParams memory request) external {
@@ -525,26 +525,26 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     uint256 erc20BalCurrency = erc20.balanceOf(CURRENCY_OWNER);
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
-    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
+    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECIPIENT);
 
     uint256 requestId = test_createListing(request);
     uint256[] memory requestIds = new uint256[](request.quantity);
     uint256[] memory quantities = new uint256[](request.quantity);
-    address[] memory receivers = new address[](request.quantity);
+    address[] memory recipients = new address[](request.quantity);
 
     for (uint256 i; i < request.quantity; i++) {
       requestIds[i] = requestId;
       quantities[i] = 1;
-      receivers[i] = CURRENCY_OWNER;
+      recipients[i] = CURRENCY_OWNER;
     }
 
     vm.prank(CURRENCY_OWNER);
-    market.acceptRequestBatch(requestIds, quantities, receivers, emptyFees, emptyFeeReceivers);
+    market.acceptRequestBatch(requestIds, quantities, recipients, emptyFees, emptyFeeRecipients);
 
     assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice);
     assertEq(erc20.balanceOf(TOKEN_OWNER), erc20BalTokenOwner + totalPrice - royalty);
-    assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty);
+    assertEq(erc20.balanceOf(ROYALTY_RECIPIENT), erc20BalRoyal + royalty);
   }
 
   function test_acceptListing_twice_overQuantity(RequestParams memory request) external {
@@ -554,7 +554,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(abi.encodeWithSelector(InvalidRequestId.selector, requestId));
-    market.acceptRequest(requestId, 1, CURRENCY_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 1, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
   }
 
   function test_acceptListing_noFunds(RequestParams memory request) external {
@@ -566,7 +566,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert("TransferHelper::transferFrom: transferFrom failed");
-    market.acceptRequest(requestId, request.quantity, CURRENCY_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, request.quantity, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
   }
 
   function test_acceptListing_invalidERC721Owner(RequestParams memory request) external {
@@ -579,7 +579,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert("ERC721: caller is not token owner or approved");
-    market.acceptRequest(requestId, 1, CURRENCY_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 1, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
   }
 
   function test_acceptListing_reentry(RequestParams memory request) external {
@@ -626,7 +626,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     // Accept fails
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(abi.encodeWithSelector(InvalidRequestId.selector, requestId));
-    market.acceptRequest(requestId, 1, CURRENCY_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 1, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
 
     return requestId;
   }
@@ -643,7 +643,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     // Partial fill
     vm.prank(CURRENCY_OWNER);
-    market.acceptRequest(requestId, 1, CURRENCY_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 1, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
 
     // Fails invalid sender
     vm.expectRevert(abi.encodeWithSelector(InvalidRequestId.selector, requestId));
@@ -669,7 +669,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     // Accept fails
     vm.prank(CURRENCY_OWNER);
     vm.expectRevert(abi.encodeWithSelector(InvalidRequestId.selector, requestId));
-    market.acceptRequest(requestId, 1, CURRENCY_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 1, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
 
     return requestId;
   }
@@ -771,7 +771,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
   //
   // Accept Offer
   //
-  function test_acceptOffer(RequestParams memory request, address receiver) public returns (uint256 requestId) {
+  function test_acceptOffer(RequestParams memory request, address recipient) public returns (uint256 requestId) {
     _fixRequest(request, false);
 
     uint256 totalPrice = request.pricePerToken * request.quantity;
@@ -779,14 +779,14 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     uint256 erc20BalCurrency = erc20.balanceOf(CURRENCY_OWNER);
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
-    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
+    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECIPIENT);
 
     requestId = test_createOffer(request);
 
     vm.expectEmit(true, true, true, true, address(market));
-    emit RequestAccepted(requestId, TOKEN_OWNER, request.tokenContract, receiver, request.quantity, 0);
+    emit RequestAccepted(requestId, TOKEN_OWNER, request.tokenContract, recipient, request.quantity, 0);
     vm.prank(TOKEN_OWNER);
-    market.acceptRequest(requestId, request.quantity, receiver, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, request.quantity, recipient, emptyFees, emptyFeeRecipients);
 
     if (request.isERC1155) {
       assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
@@ -794,8 +794,8 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
       assertEq(erc721.ownerOf(TOKEN_ID), CURRENCY_OWNER);
     }
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice - royalty);
-    assertEq(erc20.balanceOf(receiver), erc20BalTokenOwner + totalPrice);
-    assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty);
+    assertEq(erc20.balanceOf(recipient), erc20BalTokenOwner + totalPrice);
+    assertEq(erc20.balanceOf(ROYALTY_RECIPIENT), erc20BalRoyal + royalty);
 
     return requestId;
   }
@@ -812,10 +812,10 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
         mstore(additionalFees, 3)
       }
     }
-    address[] memory additionalFeeReceivers = new address[](additionalFees.length);
+    address[] memory additionalFeeRecipients = new address[](additionalFees.length);
     uint256 totalFees;
     for (uint256 i; i < additionalFees.length; i++) {
-      additionalFeeReceivers[i] = FEE_RECEIVER;
+      additionalFeeRecipients[i] = FEE_RECIPIENT;
       additionalFees[i] = bound(additionalFees[i], 1, 0.2 ether);
       totalFees += additionalFees[i];
     }
@@ -823,14 +823,14 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     uint256 erc20BalCurrency = erc20.balanceOf(CURRENCY_OWNER);
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
-    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
+    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECIPIENT);
 
     uint256 requestId = test_createOffer(request);
 
     vm.expectEmit(true, true, true, true, address(market));
     emit RequestAccepted(requestId, TOKEN_OWNER, request.tokenContract, TOKEN_OWNER, request.quantity, 0);
     vm.prank(TOKEN_OWNER);
-    market.acceptRequest(requestId, request.quantity, TOKEN_OWNER, additionalFees, additionalFeeReceivers);
+    market.acceptRequest(requestId, request.quantity, TOKEN_OWNER, additionalFees, additionalFeeRecipients);
 
     if (request.isERC1155) {
       assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
@@ -838,10 +838,10 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
       assertEq(erc721.ownerOf(TOKEN_ID), CURRENCY_OWNER);
     }
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice - royalty);
-    assertEq(erc20.balanceOf(FEE_RECEIVER), totalFees); // Assume no starting value
+    assertEq(erc20.balanceOf(FEE_RECIPIENT), totalFees); // Assume no starting value
     // Fees paid by taker
     assertEq(erc20.balanceOf(TOKEN_OWNER), erc20BalTokenOwner + totalPrice - totalFees);
-    assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty);
+    assertEq(erc20.balanceOf(ROYALTY_RECIPIENT), erc20BalRoyal + royalty);
   }
 
   function test_acceptOffer_invalidAdditionalFees(RequestParams memory params) external {
@@ -849,33 +849,33 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     // Zero fee
     uint256[] memory additionalFees = new uint256[](1);
-    address[] memory additionalFeeReceivers = new address[](1);
-    additionalFeeReceivers[0] = FEE_RECEIVER;
+    address[] memory additionalFeeRecipients = new address[](1);
+    additionalFeeRecipients[0] = FEE_RECIPIENT;
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(InvalidAdditionalFees.selector);
-    market.acceptRequest(requestId, 1, TOKEN_OWNER, additionalFees, additionalFeeReceivers);
+    market.acceptRequest(requestId, 1, TOKEN_OWNER, additionalFees, additionalFeeRecipients);
 
     // Fee exceeds cost
     Request memory request = market.getRequest(requestId);
     additionalFees[0] = request.pricePerToken * request.quantity + 1;
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(stdError.arithmeticError);
-    market.acceptRequest(requestId, request.quantity, TOKEN_OWNER, additionalFees, additionalFeeReceivers);
+    market.acceptRequest(requestId, request.quantity, TOKEN_OWNER, additionalFees, additionalFeeRecipients);
 
     // Zero address
     additionalFees[0] = 1 ether;
-    additionalFeeReceivers[0] = address(0);
+    additionalFeeRecipients[0] = address(0);
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(InvalidAdditionalFees.selector);
-    market.acceptRequest(requestId, 1, TOKEN_OWNER, additionalFees, additionalFeeReceivers);
+    market.acceptRequest(requestId, 1, TOKEN_OWNER, additionalFees, additionalFeeRecipients);
 
-    // Invalid length (larger receivers)
-    additionalFeeReceivers = new address[](2);
-    additionalFeeReceivers[0] = FEE_RECEIVER;
-    additionalFeeReceivers[1] = FEE_RECEIVER;
+    // Invalid length (larger recipients)
+    additionalFeeRecipients = new address[](2);
+    additionalFeeRecipients[0] = FEE_RECIPIENT;
+    additionalFeeRecipients[1] = FEE_RECIPIENT;
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(InvalidAdditionalFees.selector);
-    market.acceptRequest(requestId, 1, TOKEN_OWNER, additionalFees, additionalFeeReceivers);
+    market.acceptRequest(requestId, 1, TOKEN_OWNER, additionalFees, additionalFeeRecipients);
 
     // Invalid length (larger fees)
     additionalFees = new uint256[](3);
@@ -884,7 +884,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     additionalFees[2] = 3;
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(InvalidAdditionalFees.selector);
-    market.acceptRequest(requestId, 1, TOKEN_OWNER, additionalFees, additionalFeeReceivers);
+    market.acceptRequest(requestId, 1, TOKEN_OWNER, additionalFees, additionalFeeRecipients);
   }
 
   function test_acceptOffer_invalidRoyalties(RequestParams memory request) external {
@@ -900,7 +900,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     }
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(InvalidRoyalty.selector);
-    market.acceptRequest(requestId, 1, TOKEN_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 1, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
 
     // 100% is ok
     if (request.isERC1155) {
@@ -909,7 +909,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
       erc721.setFee(10_000);
     }
     vm.prank(TOKEN_OWNER);
-    market.acceptRequest(requestId, 1, TOKEN_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 1, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
   }
 
   function test_acceptOffer_invalidQuantity_zero(RequestParams memory request) external {
@@ -917,7 +917,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(InvalidQuantity.selector);
-    market.acceptRequest(requestId, 0, TOKEN_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 0, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
   }
 
   function test_acceptOffer_invalidQuantity_tooHigh(RequestParams memory request) external {
@@ -925,7 +925,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(InvalidQuantity.selector);
-    market.acceptRequest(requestId, request.quantity + 1, TOKEN_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, request.quantity + 1, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
   }
 
   function test_acceptOffer_invalidExpiry(RequestParams memory request, bool over) external {
@@ -935,7 +935,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(InvalidExpiry.selector);
-    market.acceptRequest(requestId, request.quantity, TOKEN_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, request.quantity, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
   }
 
   function test_acceptOffer_twice(RequestParams memory request) external {
@@ -952,23 +952,23 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     uint256 erc20BalCurrency = erc20.balanceOf(CURRENCY_OWNER);
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
-    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
+    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECIPIENT);
 
     uint256 requestId = test_createOffer(request);
 
     vm.startPrank(TOKEN_OWNER);
     vm.expectEmit(true, true, true, true, address(market));
     emit RequestAccepted(requestId, TOKEN_OWNER, address(erc1155), TOKEN_OWNER, request.quantity / 2, request.quantity / 2);
-    market.acceptRequest(requestId, request.quantity / 2, TOKEN_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, request.quantity / 2, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
     vm.expectEmit(true, true, true, true, address(market));
     emit RequestAccepted(requestId, TOKEN_OWNER, address(erc1155), TOKEN_OWNER, request.quantity / 2, 0);
-    market.acceptRequest(requestId, request.quantity / 2, TOKEN_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, request.quantity / 2, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
     vm.stopPrank();
 
     assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice - royalty);
     assertEq(erc20.balanceOf(TOKEN_OWNER), erc20BalTokenOwner + totalPrice);
-    assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty);
+    assertEq(erc20.balanceOf(ROYALTY_RECIPIENT), erc20BalRoyal + royalty);
   }
 
   function test_acceptOfferBatch_repeat(RequestParams memory request) external {
@@ -981,26 +981,26 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     uint256 erc20BalCurrency = erc20.balanceOf(CURRENCY_OWNER);
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
-    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
+    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECIPIENT);
 
     uint256 requestId = test_createOffer(request);
     uint256[] memory requestIds = new uint256[](request.quantity);
     uint256[] memory quantities = new uint256[](request.quantity);
-    address[] memory receivers = new address[](request.quantity);
+    address[] memory recipients = new address[](request.quantity);
 
     for (uint256 i; i < request.quantity; i++) {
       requestIds[i] = requestId;
       quantities[i] = 1;
-      receivers[i] = TOKEN_OWNER;
+      recipients[i] = TOKEN_OWNER;
     }
 
     vm.prank(TOKEN_OWNER);
-    market.acceptRequestBatch(requestIds, quantities, receivers, emptyFees, emptyFeeReceivers);
+    market.acceptRequestBatch(requestIds, quantities, recipients, emptyFees, emptyFeeRecipients);
 
     assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity);
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice - royalty);
     assertEq(erc20.balanceOf(TOKEN_OWNER), erc20BalTokenOwner + totalPrice);
-    assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty);
+    assertEq(erc20.balanceOf(ROYALTY_RECIPIENT), erc20BalRoyal + royalty);
   }
 
   function test_acceptOffer_twice_overQuantity(RequestParams memory request) external {
@@ -1010,7 +1010,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(abi.encodeWithSelector(InvalidRequestId.selector, requestId));
-    market.acceptRequest(requestId, 1, TOKEN_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 1, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
   }
 
   function test_acceptOffer_noFunds(RequestParams memory request) external {
@@ -1022,7 +1022,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     vm.prank(TOKEN_OWNER);
     vm.expectRevert("TransferHelper::transferFrom: transferFrom failed");
-    market.acceptRequest(requestId, request.quantity, TOKEN_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, request.quantity, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
   }
 
   function test_acceptOffer_invalidERC721Owner(RequestParams memory request) external {
@@ -1035,7 +1035,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     vm.prank(TOKEN_OWNER);
     vm.expectRevert("ERC721: caller is not token owner or approved");
-    market.acceptRequest(requestId, 1, TOKEN_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 1, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
   }
 
   //
@@ -1067,7 +1067,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     // Accept fails
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(abi.encodeWithSelector(InvalidRequestId.selector, requestId));
-    market.acceptRequest(requestId, 1, TOKEN_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 1, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
 
     return requestId;
   }
@@ -1084,7 +1084,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     // Partial fill
     vm.prank(TOKEN_OWNER);
-    market.acceptRequest(requestId, 1, TOKEN_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 1, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
 
     // Succeeds correct sender
     vm.expectEmit(true, true, true, true, address(market));
@@ -1105,7 +1105,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     // Accept fails
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(abi.encodeWithSelector(InvalidRequestId.selector, requestId));
-    market.acceptRequest(requestId, 1, TOKEN_OWNER, emptyFees, emptyFeeReceivers);
+    market.acceptRequest(requestId, 1, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
 
     return requestId;
   }
@@ -1202,10 +1202,10 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     requestIds[3] = test_createOffer(request);
 
     uint256[] memory quantities = new uint256[](4);
-    address[] memory receivers = new address[](4);
+    address[] memory recipients = new address[](4);
     for (uint256 i = 0; i < 4; i++) {
       quantities[i] = 1;
-      receivers[i] = TOKEN_OWNER;
+      recipients[i] = TOKEN_OWNER;
     }
 
     vm.expectEmit(true, true, true, true, address(market));
@@ -1217,7 +1217,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     vm.expectEmit(true, true, true, true, address(market));
     emit RequestAccepted(requestIds[3], TOKEN_OWNER, address(erc721), TOKEN_OWNER, 1, 0);
     vm.prank(TOKEN_OWNER);
-    market.acceptRequestBatch(requestIds, quantities, receivers, emptyFees, emptyFeeReceivers);
+    market.acceptRequestBatch(requestIds, quantities, recipients, emptyFees, emptyFeeRecipients);
   }
 
   function test_acceptRequestBatch_fuzz(uint8 count, RequestParams[] memory input, uint8[] memory quantities) external {
@@ -1262,16 +1262,16 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
         vm.expectEmit(true, true, true, true, address(market));
         emit RequestAccepted(requestIds[i], CURRENCY_OWNER, request.tokenContract, CURRENCY_OWNER, quantity, requestQuantity - quantity);
         vm.prank(CURRENCY_OWNER);
-        market.acceptRequest(requestIds[i], quantity, CURRENCY_OWNER, emptyFees, emptyFeeReceivers);
+        market.acceptRequest(requestIds[i], quantity, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
       }
     }
   }
 
-  function test_acceptListingBatch(RequestParams memory request, address[] memory receivers) external {
-    vm.assume(receivers.length > 1);
-    vm.assume(receivers[0] != receivers[1]);
+  function test_acceptListingBatch(RequestParams memory request, address[] memory recipients) external {
+    vm.assume(recipients.length > 1);
+    vm.assume(recipients[0] != recipients[1]);
     assembly {
-      mstore(receivers, 2)
+      mstore(recipients, 2)
     }
 
     request.isERC1155 = true;
@@ -1285,7 +1285,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     uint256 totalPrice2 = request.pricePerToken * request.quantity * 2;
     uint256 erc20BalCurrency = erc20.balanceOf(CURRENCY_OWNER);
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
-    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
+    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECIPIENT);
 
     uint256[] memory requestIds = new uint256[](2);
     requestIds[0] = test_createListing(request);
@@ -1297,27 +1297,27 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     quantities[1] = request.quantity;
 
     vm.expectEmit(true, true, true, true, address(market));
-    emit RequestAccepted(requestIds[0], CURRENCY_OWNER, address(erc1155), receivers[0], request.quantity, 0);
+    emit RequestAccepted(requestIds[0], CURRENCY_OWNER, address(erc1155), recipients[0], request.quantity, 0);
     vm.expectEmit(true, true, true, true, address(market));
-    emit RequestAccepted(requestIds[1], CURRENCY_OWNER, address(erc1155), receivers[1], request.quantity, 0);
+    emit RequestAccepted(requestIds[1], CURRENCY_OWNER, address(erc1155), recipients[1], request.quantity, 0);
     vm.startPrank(CURRENCY_OWNER);
-    market.acceptRequestBatch(requestIds, quantities, receivers, emptyFees, emptyFeeReceivers);
+    market.acceptRequestBatch(requestIds, quantities, recipients, emptyFees, emptyFeeRecipients);
     vm.stopPrank();
 
     uint256 royalty2 = (((totalPrice2 / 2) * ROYALTY_FEE) / 10_000) * 2; // Cater for rounding error
 
-    assertEq(erc1155.balanceOf(receivers[0], TOKEN_ID), request.quantity);
-    assertEq(erc1155.balanceOf(receivers[1], TOKEN_ID), request.quantity);
+    assertEq(erc1155.balanceOf(recipients[0], TOKEN_ID), request.quantity);
+    assertEq(erc1155.balanceOf(recipients[1], TOKEN_ID), request.quantity);
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - totalPrice2);
     assertEq(erc20.balanceOf(TOKEN_OWNER), erc20BalTokenOwner + totalPrice2 - royalty2);
-    assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty2);
+    assertEq(erc20.balanceOf(ROYALTY_RECIPIENT), erc20BalRoyal + royalty2);
   }
 
-  function test_acceptOfferBatch(RequestParams memory request, address[] memory receivers) external {
-    vm.assume(receivers.length > 1);
-    vm.assume(receivers[0] != receivers[1]);
+  function test_acceptOfferBatch(RequestParams memory request, address[] memory recipients) external {
+    vm.assume(recipients.length > 1);
+    vm.assume(recipients[0] != recipients[1]);
     assembly {
-      mstore(receivers, 2)
+      mstore(recipients, 2)
     }
 
     request.isERC1155 = true;
@@ -1331,7 +1331,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     uint256 totalPrice = request.pricePerToken * request.quantity;
     uint256 erc20BalCurrency = erc20.balanceOf(CURRENCY_OWNER);
     uint256 erc20BalTokenOwner = erc20.balanceOf(TOKEN_OWNER);
-    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECEIVER);
+    uint256 erc20BalRoyal = erc20.balanceOf(ROYALTY_RECIPIENT);
 
     uint256[] memory requestIds = new uint256[](2);
     requestIds[0] = test_createOffer(request);
@@ -1343,32 +1343,32 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     quantities[1] = request.quantity;
 
     vm.expectEmit(true, true, true, true, address(market));
-    emit RequestAccepted(requestIds[0], TOKEN_OWNER, address(erc1155), receivers[0], request.quantity, 0);
+    emit RequestAccepted(requestIds[0], TOKEN_OWNER, address(erc1155), recipients[0], request.quantity, 0);
     vm.expectEmit(true, true, true, true, address(market));
-    emit RequestAccepted(requestIds[1], TOKEN_OWNER, address(erc1155), receivers[1], request.quantity, 0);
+    emit RequestAccepted(requestIds[1], TOKEN_OWNER, address(erc1155), recipients[1], request.quantity, 0);
     vm.startPrank(TOKEN_OWNER);
-    market.acceptRequestBatch(requestIds, quantities, receivers, emptyFees, emptyFeeReceivers);
+    market.acceptRequestBatch(requestIds, quantities, recipients, emptyFees, emptyFeeRecipients);
     vm.stopPrank();
 
     uint256 royalty2 = (totalPrice * ROYALTY_FEE) / 10_000 * 2;
 
     assertEq(erc1155.balanceOf(CURRENCY_OWNER, TOKEN_ID), request.quantity * 2);
     assertEq(erc20.balanceOf(CURRENCY_OWNER), erc20BalCurrency - (totalPrice * 2) - royalty2);
-    assertEq(erc20.balanceOf(receivers[0]), erc20BalTokenOwner + totalPrice);
-    assertEq(erc20.balanceOf(receivers[1]), erc20BalTokenOwner + totalPrice);
-    assertEq(erc20.balanceOf(ROYALTY_RECEIVER), erc20BalRoyal + royalty2);
+    assertEq(erc20.balanceOf(recipients[0]), erc20BalTokenOwner + totalPrice);
+    assertEq(erc20.balanceOf(recipients[1]), erc20BalTokenOwner + totalPrice);
+    assertEq(erc20.balanceOf(ROYALTY_RECIPIENT), erc20BalRoyal + royalty2);
   }
 
-  function test_acceptRequestBatch_invalidLengths(uint8 count, RequestParams[] memory input, uint256[] memory quantities, address[] memory receivers)
+  function test_acceptRequestBatch_invalidLengths(uint8 count, RequestParams[] memory input, uint256[] memory quantities, address[] memory recipients)
     external
   {
     count = count > 4 ? 4 : count;
     vm.assume(quantities.length != count);
     uint256[] memory requestIds = test_createRequestBatch(count, input);
-    vm.assume(quantities.length != requestIds.length || receivers.length != requestIds.length);
+    vm.assume(quantities.length != requestIds.length || recipients.length != requestIds.length);
 
     vm.expectRevert(InvalidBatchRequest.selector);
-    market.acceptRequestBatch(requestIds, quantities, receivers, emptyFees, emptyFeeReceivers);
+    market.acceptRequestBatch(requestIds, quantities, recipients, emptyFees, emptyFeeRecipients);
   }
 
   //
@@ -1591,13 +1591,13 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     _fixRequest(request, false);
     requestIds[3] = test_createOffer(request);
 
-    // Use fee receiver as a "random" address
+    // Use fee recipient as a "random" address
     vm.startPrank(TOKEN_OWNER);
-    erc1155.safeTransferFrom(TOKEN_OWNER, FEE_RECEIVER, TOKEN_ID, erc1155.balanceOf(TOKEN_OWNER, TOKEN_ID), "");
-    erc721.transferFrom(TOKEN_OWNER, FEE_RECEIVER, TOKEN_ID);
+    erc1155.safeTransferFrom(TOKEN_OWNER, FEE_RECIPIENT, TOKEN_ID, erc1155.balanceOf(TOKEN_OWNER, TOKEN_ID), "");
+    erc721.transferFrom(TOKEN_OWNER, FEE_RECIPIENT, TOKEN_ID);
     vm.stopPrank();
     vm.startPrank(CURRENCY_OWNER);
-    erc20.transfer(FEE_RECEIVER, CURRENCY_QUANTITY);
+    erc20.transfer(FEE_RECIPIENT, CURRENCY_QUANTITY);
     assertEq(erc20.balanceOf(CURRENCY_OWNER), 0);
     vm.stopPrank();
 

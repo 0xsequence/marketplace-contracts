@@ -141,9 +141,9 @@ Accepts a request.
 function acceptRequest(
   uint256 requestId,
   uint256 quantity,
-  address receiver,
+  address recipient,
   uint256[] calldata additionalFees,
-  address[] calldata additionalFeeReceivers
+  address[] calldata additionalFeeRecipients
 ) external;
 ```
 **Parameters**
@@ -152,9 +152,9 @@ function acceptRequest(
 |----|----|-----------|
 |`requestId`|`uint256`|The ID of the request.|
 |`quantity`|`uint256`|The quantity of tokens to accept.|
-|`receiver`|`address`|The receiver of the accepted tokens.|
+|`recipient`|`address`|The recipient of the accepted tokens.|
 |`additionalFees`|`uint256[]`|The additional fees to pay.|
-|`additionalFeeReceivers`|`address[]`|The addresses to send the additional fees to.|
+|`additionalFeeRecipients`|`address[]`|The addresses to send the additional fees to.|
 
 
 ### acceptRequestBatch
@@ -168,9 +168,9 @@ Accepts requests.
 function acceptRequestBatch(
   uint256[] calldata requestIds,
   uint256[] calldata quantities,
-  address[] calldata receivers,
+  address[] calldata recipients,
   uint256[] calldata additionalFees,
-  address[] calldata additionalFeeReceivers
+  address[] calldata additionalFeeRecipients
 ) external;
 ```
 **Parameters**
@@ -179,9 +179,9 @@ function acceptRequestBatch(
 |----|----|-----------|
 |`requestIds`|`uint256[]`|The IDs of the requests.|
 |`quantities`|`uint256[]`|The quantities of tokens to accept.|
-|`receivers`|`address[]`|The receivers of the accepted tokens.|
+|`recipients`|`address[]`|The recipients of the accepted tokens.|
 |`additionalFees`|`uint256[]`|The additional fees to pay.|
-|`additionalFeeReceivers`|`address[]`|The addresses to send the additional fees to.|
+|`additionalFeeRecipients`|`address[]`|The addresses to send the additional fees to.|
 
 
 ### cancelRequest
@@ -365,7 +365,7 @@ event RequestAccepted(
   uint256 indexed requestId,
   address indexed buyer,
   address indexed tokenContract,
-  address receiver,
+  address recipient,
   uint256 quantity,
   uint256 quantityRemaining
 );
