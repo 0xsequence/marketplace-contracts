@@ -17,13 +17,13 @@ contract ERC1155RoyaltyMock is ERC1155MintBurnMock {
    * is owed and to whom.
    * @param _tokenId - the NFT asset queried for royalty information
    * @param _salePrice - the sale price of the NFT asset specified by _tokenId
-   * @return receiver - address of who should be sent the royalty payment
+   * @return receipient - address of who should be sent the royalty payment
    * @return royaltyAmount - the royalty payment amount for _salePrice
    */
   function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
     external
     view
-    returns (address receiver, uint256 royaltyAmount)
+    returns (address receipient, uint256 royaltyAmount)
   {
     if (_tokenId == 666) {
       uint256 fee = _salePrice * royaltyFee666 / 10_000;
