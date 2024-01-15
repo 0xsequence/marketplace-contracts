@@ -120,49 +120,49 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
    * Accepts a request.
    * @param requestId The ID of the request.
    * @param quantity The quantity of tokens to accept.
-   * @param receiver The receiver of the accepted tokens.
+   * @param recipient The recipient of the accepted tokens.
    * @param additionalFees The additional fees to pay.
-   * @param additionalFeeReceivers The addresses to send the additional fees to.
+   * @param additionalFeeRecipients The addresses to send the additional fees to.
    */
   function acceptRequest(
     uint256 requestId,
     uint256 quantity,
-    address receiver,
+    address recipient,
     uint256[] calldata additionalFees,
-    address[] calldata additionalFeeReceivers
+    address[] calldata additionalFeeRecipients
   )
     external
     nonReentrant
   {
-    _acceptRequest(requestId, quantity, receiver, additionalFees, additionalFeeReceivers);
+    _acceptRequest(requestId, quantity, recipient, additionalFees, additionalFeeRecipients);
   }
 
   /**
    * Accepts requests.
    * @param requestIds The IDs of the requests.
    * @param quantities The quantities of tokens to accept.
-   * @param receivers The receivers of the accepted tokens.
+   * @param recipients The recipients of the accepted tokens.
    * @param additionalFees The additional fees to pay.
-   * @param additionalFeeReceivers The addresses to send the additional fees to.
+   * @param additionalFeeRecipients The addresses to send the additional fees to.
    * @dev Additional fees are applied to each request.
    */
   function acceptRequestBatch(
     uint256[] calldata requestIds,
     uint256[] calldata quantities,
-    address[] calldata receivers,
+    address[] calldata recipients,
     uint256[] calldata additionalFees,
-    address[] calldata additionalFeeReceivers
+    address[] calldata additionalFeeRecipients
   )
     external
     nonReentrant
   {
     uint256 len = requestIds.length;
-    if (len != quantities.length || len != receivers.length) {
+    if (len != quantities.length || len != recipients.length) {
       revert InvalidBatchRequest();
     }
 
     for (uint256 i; i < len; i++) {
-      _acceptRequest(requestIds[i], quantities[i], receivers[i], additionalFees, additionalFeeReceivers);
+      _acceptRequest(requestIds[i], quantities[i], recipients[i], additionalFees, additionalFeeRecipients);
     }
   }
 
@@ -170,16 +170,16 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
    * Performs acceptance of a request.
    * @param requestId The ID of the request.
    * @param quantity The quantity of tokens to accept.
-   * @param receiver The receiver of the accepted tokens.
+   * @param recipient The recipient of the accepted tokens.
    * @param additionalFees The additional fees to pay.
-   * @param additionalFeeReceivers The addresses to send the additional fees to.
+   * @param additionalFeeRecipients The addresses to send the additional fees to.
    */
   function _acceptRequest(
     uint256 requestId,
     uint256 quantity,
-    address receiver,
+    address recipient,
     uint256[] calldata additionalFees,
-    address[] calldata additionalFeeReceivers
+    address[] calldata additionalFeeRecipients
   )
     internal
   {
@@ -194,7 +194,7 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     if (_isExpired(request)) {
       revert InvalidExpiry();
     }
-    if (additionalFees.length != additionalFeeReceivers.length) {
+    if (additionalFees.length != additionalFeeRecipients.length) {
       revert InvalidAdditionalFees();
     }
 
@@ -212,19 +212,19 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     (address royaltyRecipient, uint256 royaltyAmount) = getRoyaltyInfo(tokenContract, request.tokenId, remainingCost);
 
     address currencySender;
-    address currencyReceiver;
+    address currencyRecipient;
     address tokenSender;
-    address tokenReceiver;
+    address tokenRecipient;
     if (request.isListing) {
       currencySender = msg.sender;
-      currencyReceiver = request.creator;
+      currencyRecipient = request.creator;
       tokenSender = request.creator;
-      tokenReceiver = receiver;
+      tokenRecipient = recipient;
     } else {
       currencySender = request.creator;
-      currencyReceiver = receiver;
+      currencyRecipient = recipient;
       tokenSender = msg.sender;
-      tokenReceiver = request.creator;
+      tokenRecipient = request.creator;
     }
 
     if (royaltyAmount > 0) {
@@ -244,12 +244,12 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     uint256 totalFees;
     for (uint256 i; i < additionalFees.length; i++) {
       uint256 fee = additionalFees[i];
-      address feeReceiver = additionalFeeReceivers[i];
-      if (feeReceiver == address(0) || fee == 0) {
+      address feeRecipient = additionalFeeRecipients[i];
+      if (feeRecipient == address(0) || fee == 0) {
         revert InvalidAdditionalFees();
       }
       totalFees += fee;
-      TransferHelper.safeTransferFrom(request.currency, currencySender, feeReceiver, fee);
+      TransferHelper.safeTransferFrom(request.currency, currencySender, feeRecipient, fee);
     }
     if (!request.isListing) {
       // Fees are paid by the taker. This reduces the cost for offers.
@@ -261,16 +261,16 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     }
 
     // Transfer currency
-    TransferHelper.safeTransferFrom(request.currency, currencySender, currencyReceiver, remainingCost);
+    TransferHelper.safeTransferFrom(request.currency, currencySender, currencyRecipient, remainingCost);
 
     // Transfer token
     if (request.isERC1155) {
-      IERC1155(tokenContract).safeTransferFrom(tokenSender, tokenReceiver, request.tokenId, quantity, "");
+      IERC1155(tokenContract).safeTransferFrom(tokenSender, tokenRecipient, request.tokenId, quantity, "");
     } else {
-      IERC721(tokenContract).safeTransferFrom(tokenSender, tokenReceiver, request.tokenId);
+      IERC721(tokenContract).safeTransferFrom(tokenSender, tokenRecipient, request.tokenId);
     }
 
-    emit RequestAccepted(requestId, msg.sender, tokenContract, receiver, quantity, _requests[requestId].quantity);
+    emit RequestAccepted(requestId, msg.sender, tokenContract, recipient, quantity, _requests[requestId].quantity);
   }
 
   /**

@@ -81,16 +81,16 @@ interface ISequenceMarketFunctions is ISequenceMarketStorage {
    * Accepts a request.
    * @param requestId The ID of the request.
    * @param quantity The quantity of tokens to accept.
-   * @param receiver The receiver of the accepted tokens.
+   * @param recipient The recipient of the accepted tokens.
    * @param additionalFees The additional fees to pay.
-   * @param additionalFeeReceivers The addresses to send the additional fees to.
+   * @param additionalFeeRecipients The addresses to send the additional fees to.
    */
   function acceptRequest(
     uint256 requestId,
     uint256 quantity,
-    address receiver,
+    address recipient,
     uint256[] calldata additionalFees,
-    address[] calldata additionalFeeReceivers
+    address[] calldata additionalFeeRecipients
   )
     external;
 
@@ -98,17 +98,17 @@ interface ISequenceMarketFunctions is ISequenceMarketStorage {
    * Accepts requests.
    * @param requestIds The IDs of the requests.
    * @param quantities The quantities of tokens to accept.
-   * @param receivers The receivers of the accepted tokens.
+   * @param recipients The recipients of the accepted tokens.
    * @param additionalFees The additional fees to pay.
-   * @param additionalFeeReceivers The addresses to send the additional fees to.
+   * @param additionalFeeRecipients The addresses to send the additional fees to.
    * @dev Additional fees are applied to each request.
    */
   function acceptRequestBatch(
     uint256[] calldata requestIds,
     uint256[] calldata quantities,
-    address[] calldata receivers,
+    address[] calldata recipients,
     uint256[] calldata additionalFees,
-    address[] calldata additionalFeeReceivers
+    address[] calldata additionalFeeRecipients
   )
     external;
 
@@ -198,7 +198,7 @@ interface ISequenceMarketSignals {
     uint256 indexed requestId,
     address indexed buyer,
     address indexed tokenContract,
-    address receiver,
+    address recipient,
     uint256 quantity,
     uint256 quantityRemaining
   );

@@ -12,3 +12,6 @@ sed -i '1,6d' contracts/interfaces/interface.ISequenceMarketFunctions.md
 sed -i '1,3d' contracts/interfaces/interface.ISequenceMarketStorage.md contracts/interfaces/interface.ISequenceMarketSignals.md
 cat contracts/interfaces/interface.ISequenceMarket.md contracts/interfaces/interface.ISequenceMarketStorage.md contracts/interfaces/interface.ISequenceMarketFunctions.md contracts/interfaces/interface.ISequenceMarketSignals.md > contracts/interfaces/ISequenceMarket.md
 rm contracts/interfaces/interface.ISequenceMarket*.md
+
+# Add reference to interface docs in contract doc
+sed -i '3i Interface and struct definitions can be found at [ISequenceMarket.md](./interfaces/ISequenceMarket.md).' contracts/SequenceMarket.md
