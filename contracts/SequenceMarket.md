@@ -1,5 +1,6 @@
 # SequenceMarket
 
+Interface and struct definitions can be found at [ISequenceMarket.md](./interfaces/ISequenceMarket.md).
 
 ## State Variables
 ### _requests
