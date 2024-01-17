@@ -2,12 +2,6 @@
 
 Contains contracts for the Sequence Marketplace.
 
-## ⚠️ Warning
-
-This is an important notice! Please read carefully before proceeding.
-
-> **Note:** The contracts in this repository are under active development and are subject to change. As such auditing is not yet complete and the contracts should not be used in production.
-
 ## Contracts
 
 ### Sequence Market
@@ -79,6 +73,10 @@ Generate docs with:
 ```bash
 ./generateDocs.sh
 ```
+
+## Audits
+
+The contracts in this repository have been audited by [Quantstamp](https://quantstamp.com). Audit reports are available in the [audits](./audits) folder.
 
 ## License
 
