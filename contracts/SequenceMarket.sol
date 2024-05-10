@@ -8,18 +8,25 @@ import {IERC20} from "@0xsequence/erc-1155/contracts/interfaces/IERC20.sol";
 import {IERC165} from "@0xsequence/erc-1155/contracts/interfaces/IERC165.sol";
 import {IERC1155} from "@0xsequence/erc-1155/contracts/interfaces/IERC1155.sol";
 import {TransferHelper} from "@uniswap/lib/contracts/libraries/TransferHelper.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
-contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
+contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
   mapping(uint256 => Request) internal _requests;
   mapping(address => CustomRoyalty) public customRoyalties;
 
   uint256 private _nextRequestId;
 
-  constructor(address _owner) {
+  constructor() {
+    _disableInitializers();
+  }
+
+  function initialize(address _owner) external initializer {
     _transferOwnership(_owner);
   }
+
+  function _authorizeUpgrade(address) internal override onlyOwner {}
 
   /**
    * Creates a request.
