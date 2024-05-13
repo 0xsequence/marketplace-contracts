@@ -10,12 +10,12 @@ interface ISequenceMarketStorage {
    * @param tokenId The ID of the token.
    * @param quantity The quantity of tokens.
    * @param expiry The expiry of the request.
-   * @param currency The address of the currency.
+   * @param currency The address of the currency. address(0) for native token.
    * @param pricePerToken The price per token, including royalty fees.
    */
   struct RequestParams {
-    bool isListing; // True if the request is a listing, false if it is an offer.
-    bool isERC1155; // True if the token is an ERC1155 token, false if it is an ERC721 token.
+    bool isListing;
+    bool isERC1155;
     address tokenContract;
     uint256 tokenId;
     uint256 quantity;
@@ -33,7 +33,7 @@ interface ISequenceMarketStorage {
    * @param tokenId The ID of the token.
    * @param quantity The quantity of tokens.
    * @param expiry The expiry of the request.
-   * @param currency The address of the currency.
+   * @param currency The address of the currency. address(0) for native token.
    * @param pricePerToken The price per token, including royalty fees.
    */
   struct Request {
@@ -92,7 +92,7 @@ interface ISequenceMarketFunctions is ISequenceMarketStorage {
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeRecipients
   )
-    external;
+    external payable;
 
   /**
    * Accepts requests.

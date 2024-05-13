@@ -69,9 +69,6 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
 
     // Check interfaces
     _requireInterface(tokenContract, params.isERC1155 ? type(IERC1155).interfaceId : type(IERC721).interfaceId);
-    if (params.currency == address(0)) {
-      revert InvalidCurrency();
-    }
 
     if (params.isListing) {
       // Check valid token for listing
@@ -79,6 +76,10 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
         revert InvalidTokenApproval(tokenContract, params.tokenId, quantity, msg.sender);
       }
     } else {
+      if (params.currency == address(0)) {
+        // Native token support not available for offers
+        revert InvalidCurrency();
+      }
       // Check approved currency for offer inc royalty
       uint256 total = quantity * params.pricePerToken;
       (, uint256 royaltyAmount) = getRoyaltyInfo(tokenContract, params.tokenId, total);
@@ -139,6 +140,7 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
     address[] calldata additionalFeeRecipients
   )
     external
+    payable
     nonReentrant
   {
     _acceptRequest(requestId, quantity, recipient, additionalFees, additionalFeeRecipients);
@@ -204,6 +206,10 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
     if (additionalFees.length != additionalFeeRecipients.length) {
       revert InvalidAdditionalFees();
     }
+    if (request.currency != address(0) && msg.value != 0) {
+      // Sent native token when not required
+      revert InvalidCurrency();
+    }
 
     // Update request state
     if (request.quantity == quantity) {
@@ -234,6 +240,8 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
       tokenRecipient = request.creator;
     }
 
+    bool isNative = request.currency == address(0);
+
     if (royaltyAmount > 0) {
       if (request.isListing) {
         // Royalties are paid by the maker. This reduces the cost for listings.
@@ -244,7 +252,13 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
         revert InvalidRoyalty();
       }
       // Transfer royalties
-      TransferHelper.safeTransferFrom(request.currency, currencySender, royaltyRecipient, royaltyAmount);
+      if (isNative) {
+        // Transfer native token
+        TransferHelper.safeTransferETH(royaltyRecipient, royaltyAmount);
+      } else {
+        // Transfer currency
+        TransferHelper.safeTransferFrom(request.currency, currencySender, royaltyRecipient, royaltyAmount);
+      }
     }
 
     // Transfer additional fees
@@ -255,8 +269,12 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
       if (feeRecipient == address(0) || fee == 0) {
         revert InvalidAdditionalFees();
       }
+      if (isNative) {
+        TransferHelper.safeTransferETH(feeRecipient, fee);
+      } else {
+        TransferHelper.safeTransferFrom(request.currency, currencySender, feeRecipient, fee);
+      }
       totalFees += fee;
-      TransferHelper.safeTransferFrom(request.currency, currencySender, feeRecipient, fee);
     }
     if (!request.isListing) {
       // Fees are paid by the taker. This reduces the cost for offers.
@@ -267,8 +285,18 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
       revert InvalidAdditionalFees();
     }
 
-    // Transfer currency
-    TransferHelper.safeTransferFrom(request.currency, currencySender, currencyRecipient, remainingCost);
+    if (isNative) {
+      // Transfer native token
+      TransferHelper.safeTransferETH(currencyRecipient, remainingCost);
+      uint256 thisBal = address(this).balance;
+      if (thisBal > 0) {
+        // Transfer any remaining native token back to currency sender (msg.sender)
+        TransferHelper.safeTransferETH(currencySender, thisBal);
+      }
+    } else {
+      // Transfer currency
+      TransferHelper.safeTransferFrom(request.currency, currencySender, currencyRecipient, remainingCost);
+    }
 
     // Transfer token
     if (request.isERC1155) {

@@ -86,6 +86,8 @@ contract UpgradeabilityTest is ISequenceMarketStorage, Test {
   }
 
   function test_nonAdminNoUpgrade(address owner, address nonowner) external withMarket(owner) {
+    vm.assume(owner != nonowner);
+
     MarketV2 marketV2 = new MarketV2();
 
     vm.expectRevert();
@@ -96,8 +98,9 @@ contract UpgradeabilityTest is ISequenceMarketStorage, Test {
   //
   // Helpers
   //
-  function _assumeNotPrecompile(address addr) internal pure {
+  function _assumeNotPrecompile(address addr) internal view {
     vm.assume(addr != address(0));
+    vm.assume(addr.code.length <= 2);
     assumeNotPrecompile(addr);
     assumeNotForgeAddress(addr);
   }
