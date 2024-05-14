@@ -527,6 +527,8 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     uint256 requestId3 = createOffer(params1);
 
     vm.prank(TOKEN_OWNER);
+    vm.expectEmit(true, true, true, true, address(market));
+    emit RequestsInvalidated(TOKEN_OWNER, requestId3 + 1);
     market.invalidateRequests();
 
     (bool valid,) = market.isRequestValid(requestId1, 1);
@@ -1062,6 +1064,8 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     uint256 requestId3 = createListing(params1);
 
     vm.prank(CURRENCY_OWNER);
+    vm.expectEmit(true, true, true, true, address(market));
+    emit RequestsInvalidated(CURRENCY_OWNER, requestId3 + 1);
     market.invalidateRequests();
 
     (bool valid,) = market.isRequestValid(requestId1, 1);

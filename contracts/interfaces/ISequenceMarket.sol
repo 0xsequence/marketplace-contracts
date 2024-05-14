@@ -211,6 +211,9 @@ interface ISequenceMarketSignals {
   /// Emitted when a request is cancelled.
   event RequestCancelled(uint256 indexed requestId, address indexed tokenContract);
 
+  /// Emitted when a user bulk invalidates requests.
+  event RequestsInvalidated(address indexed creator, uint256 indexed invalidatedBefore);
+
   /// Emitted when custom royalty settings are changed.
   event CustomRoyaltyChanged(address indexed tokenContract, address recipient, uint96 fee);
 

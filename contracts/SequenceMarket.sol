@@ -347,8 +347,12 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
     emit RequestCancelled(requestId, tokenContract);
   }
 
+  /**
+   * Invalidates all current requests for the msg.sender.
+   */
   function invalidateRequests() external {
     invalidBeforeId[msg.sender] = _nextRequestId;
+    emit RequestsInvalidated(msg.sender, _nextRequestId);
   }
 
   /**
