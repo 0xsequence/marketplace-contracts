@@ -10,6 +10,13 @@ mapping(uint256 => Request) internal _requests;
 ```
 
 
+### invalidBeforeId
+
+```solidity
+mapping(address => uint256) public invalidBeforeId;
+```
+
+
 ### customRoyalties
 
 ```solidity
@@ -29,7 +36,21 @@ uint256 private _nextRequestId;
 
 
 ```solidity
-constructor(address _owner);
+constructor();
+```
+
+### initialize
+
+
+```solidity
+function initialize(address _owner) external initializer;
+```
+
+### _authorizeUpgrade
+
+
+```solidity
+function _authorizeUpgrade(address) internal override onlyOwner;
 ```
 
 ### createRequest
@@ -110,7 +131,7 @@ function acceptRequest(
   address recipient,
   uint256[] calldata additionalFees,
   address[] calldata additionalFeeRecipients
-) external nonReentrant;
+) external payable nonReentrant;
 ```
 **Parameters**
 
@@ -219,6 +240,13 @@ function _cancelRequest(uint256 requestId) internal;
 |----|----|-----------|
 |`requestId`|`uint256`|The ID of the request.|
 
+
+### invalidateRequests
+
+
+```solidity
+function invalidateRequests() external;
+```
 
 ### getRequest
 
