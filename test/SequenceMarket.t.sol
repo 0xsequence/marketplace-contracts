@@ -521,6 +521,35 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     market.acceptRequest(requestId, request.quantity, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
   }
 
+  function test_acceptListing_invalidated(RequestParams memory params1, RequestParams memory params2) external {
+    uint256 requestId1 = createListing(params1);
+    uint256 requestId2 = createListing(params2);
+    uint256 requestId3 = createOffer(params1);
+
+    vm.prank(TOKEN_OWNER);
+    market.invalidateRequests();
+
+    (bool valid,) = market.isRequestValid(requestId1, 1);
+    assertFalse(valid);
+    (valid,) = market.isRequestValid(requestId2, 1);
+    assertFalse(valid);
+    (valid,) = market.isRequestValid(requestId3, 1);
+    assertTrue(valid); // Unaffected
+
+    vm.prank(CURRENCY_OWNER);
+    vm.expectRevert(Invalidated.selector);
+    market.acceptRequest(requestId1, 1, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
+    vm.prank(CURRENCY_OWNER);
+    vm.expectRevert(Invalidated.selector);
+    market.acceptRequest(requestId2, 1, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
+
+    // Next request valid
+    requestId1 = createListing(params1);
+    uint256 msgVal = params1.currency == address(0) ? params1.pricePerToken : 0;
+    vm.prank(CURRENCY_OWNER);
+    market.acceptRequest{value: msgVal}(requestId1, 1, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
+  }
+
   function test_acceptListing_twice(RequestParams memory request) external {
     request.isERC1155 = true;
     _fixRequest(request, true);
@@ -1027,6 +1056,35 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     market.acceptRequest(requestId, request.quantity, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
   }
 
+  function test_acceptOffer_invalidated(RequestParams memory params1, RequestParams memory params2) external {
+    uint256 requestId1 = createOffer(params1);
+    uint256 requestId2 = createOffer(params2);
+    uint256 requestId3 = createListing(params1);
+
+    vm.prank(CURRENCY_OWNER);
+    market.invalidateRequests();
+
+    (bool valid,) = market.isRequestValid(requestId1, 1);
+    assertFalse(valid);
+    (valid,) = market.isRequestValid(requestId2, 1);
+    assertFalse(valid);
+    (valid,) = market.isRequestValid(requestId3, 1);
+    assertTrue(valid); // Unaffected
+
+    vm.prank(TOKEN_OWNER);
+    vm.expectRevert(Invalidated.selector);
+    market.acceptRequest(requestId1, 1, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
+    vm.prank(TOKEN_OWNER);
+    vm.expectRevert(Invalidated.selector);
+    market.acceptRequest(requestId2, 1, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
+
+    // Next request valid
+    requestId1 = createOffer(params1);
+    uint256 msgVal = params1.currency == address(0) ? params1.pricePerToken : 0;
+    vm.prank(TOKEN_OWNER);
+    market.acceptRequest{value: msgVal}(requestId1, 1, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
+  }
+
   function test_acceptOffer_twice(RequestParams memory request) external {
     request.isERC1155 = true;
     _fixRequest(request, false);
@@ -1418,6 +1476,10 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
   function test_acceptOfferBatch(RequestParams memory request, address[] memory recipients) external {
     vm.assume(recipients.length > 1);
     vm.assume(recipients[0] != recipients[1]);
+    vm.assume(recipients[0] != CURRENCY_OWNER);
+    vm.assume(recipients[0] != ROYALTY_RECIPIENT);
+    vm.assume(recipients[1] != CURRENCY_OWNER);
+    vm.assume(recipients[1] != ROYALTY_RECIPIENT);
     assembly {
       mstore(recipients, 2)
     }

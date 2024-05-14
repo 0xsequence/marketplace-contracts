@@ -14,6 +14,7 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/se
 
 contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
   mapping(uint256 => Request) internal _requests;
+  mapping(address => uint256) public invalidBeforeId;
   mapping(address => CustomRoyalty) public customRoyalties;
 
   uint256 private _nextRequestId;
@@ -200,6 +201,9 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
     if (quantity == 0 || quantity > request.quantity) {
       revert InvalidQuantity();
     }
+    if (requestId < invalidBeforeId[request.creator]) {
+      revert Invalidated();
+    }
     if (_isExpired(request)) {
       revert InvalidExpiry();
     }
@@ -343,6 +347,10 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
     emit RequestCancelled(requestId, tokenContract);
   }
 
+  function invalidateRequests() external {
+    invalidBeforeId[msg.sender] = _nextRequestId;
+  }
+
   /**
    * Gets a request.
    * @param requestId The ID of the request.
@@ -375,6 +383,9 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
    */
   function isRequestValid(uint256 requestId, uint256 quantity) public view returns (bool valid, Request memory request) {
     request = _requests[requestId];
+    if (requestId < invalidBeforeId[request.creator]) {
+      return (false, request);
+    }
     if (quantity == 0) {
       // 0 is assumed to be max quantity
       quantity = request.quantity;

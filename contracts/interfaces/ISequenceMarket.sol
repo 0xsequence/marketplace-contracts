@@ -139,6 +139,11 @@ interface ISequenceMarketFunctions is ISequenceMarketStorage {
   function getRequestBatch(uint256[] calldata requestIds) external view returns (Request[] memory requests);
 
   /**
+   * Invalidates all current requests for the msg.sender.
+   */
+  function invalidateRequests() external;
+
+  /**
    * Checks if a request is valid.
    * @param requestId The ID of the request.
    * @param quantity The amount of tokens to exchange. 0 is assumed to be the request's available quantity.
@@ -242,6 +247,9 @@ interface ISequenceMarketSignals {
 
   /// Thrown when expiry is invalid.
   error InvalidExpiry();
+
+  /// Thrown when request has been explicitly invalidated.
+  error Invalidated();
 
   /// Thrown when the additional fees are invalid.
   error InvalidAdditionalFees();
