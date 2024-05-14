@@ -243,6 +243,8 @@ function _cancelRequest(uint256 requestId) internal;
 
 ### invalidateRequests
 
+Invalidates all current requests for the msg.sender.
+
 
 ```solidity
 function invalidateRequests() external;
@@ -294,8 +296,6 @@ function getRequestBatch(uint256[] calldata requestIds) external view returns (R
 
 Checks if a request is valid.
 
-A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
-
 
 ```solidity
 function isRequestValid(uint256 requestId, uint256 quantity) public view returns (bool valid, Request memory request);
@@ -318,8 +318,6 @@ function isRequestValid(uint256 requestId, uint256 quantity) public view returns
 ### isRequestValidBatch
 
 Checks if requests are valid.
-
-A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
 
 
 ```solidity

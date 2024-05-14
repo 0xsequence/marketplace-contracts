@@ -388,6 +388,14 @@ Emitted when a request is cancelled.
 event RequestCancelled(uint256 indexed requestId, address indexed tokenContract);
 ```
 
+### RequestsInvalidated
+Emitted when a user bulk invalidates requests.
+
+
+```solidity
+event RequestsInvalidated(address indexed creator, uint256 indexed invalidatedBefore);
+```
+
 ### CustomRoyaltyChanged
 Emitted when custom royalty settings are changed.
 
