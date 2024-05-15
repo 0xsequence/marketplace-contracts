@@ -265,6 +265,15 @@ Invalidates all current requests for the msg.sender.
 function invalidateRequests() external;
 ```
 
+### invalidateRequests
+
+Invalidates all current requests for a given `tokenContract` for the msg.sender.
+
+
+```solidity
+function invalidateRequests(address tokenContract) external;
+```
+
 ### isRequestValid
 
 Checks if a request is valid.
@@ -394,6 +403,14 @@ Emitted when a user bulk invalidates requests.
 
 ```solidity
 event RequestsInvalidated(address indexed creator, uint256 indexed invalidatedBefore);
+```
+
+### RequestsInvalidated
+Emitted when a user bulk invalidates requests.
+
+
+```solidity
+event RequestsInvalidated(address indexed creator, address indexed tokenContract, uint256 indexed invalidatedBefore);
 ```
 
 ### CustomRoyaltyChanged

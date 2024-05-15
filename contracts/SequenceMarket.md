@@ -17,6 +17,13 @@ mapping(address => uint256) public invalidBeforeId;
 ```
 
 
+### invalidTokenBeforeId
+
+```solidity
+mapping(address => mapping(address => uint256)) public invalidTokenBeforeId;
+```
+
+
 ### customRoyalties
 
 ```solidity
@@ -248,6 +255,15 @@ Invalidates all current requests for the msg.sender.
 
 ```solidity
 function invalidateRequests() external;
+```
+
+### invalidateRequests
+
+Invalidates all current requests for the msg.sender.
+
+
+```solidity
+function invalidateRequests(address tokenContract) external;
 ```
 
 ### getRequest
