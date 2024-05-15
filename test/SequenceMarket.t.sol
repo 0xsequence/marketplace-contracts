@@ -552,6 +552,34 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     market.acceptRequest{value: msgVal}(requestId1, 1, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
   }
 
+  function test_acceptListing_invalidatedToken(RequestParams memory params1, RequestParams memory params2) external {
+    _fixRequest(params1, true);
+    _fixRequest(params2, true);
+    vm.assume(params1.tokenContract != params2.tokenContract);
+    uint256 requestId1 = createListing(params1);
+    uint256 requestId2 = createListing(params2);
+
+    vm.prank(TOKEN_OWNER);
+    vm.expectEmit(true, true, true, true, address(market));
+    emit RequestsInvalidated(TOKEN_OWNER, params1.tokenContract, requestId2 + 1);
+    market.invalidateRequests(params1.tokenContract);
+
+    (bool valid,) = market.isRequestValid(requestId1, 1);
+    assertFalse(valid, "requestId1");
+    (valid,) = market.isRequestValid(requestId2, 1);
+    assertTrue(valid, "requestId2"); // Unaffected
+
+    vm.prank(CURRENCY_OWNER);
+    vm.expectRevert(Invalidated.selector);
+    market.acceptRequest(requestId1, 1, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
+
+    // Next request valid
+    requestId1 = createListing(params1);
+    uint256 msgVal = params1.currency == address(0) ? params1.pricePerToken : 0;
+    vm.prank(CURRENCY_OWNER);
+    market.acceptRequest{value: msgVal}(requestId1, 1, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
+  }
+
   function test_acceptListing_twice(RequestParams memory request) external {
     request.isERC1155 = true;
     _fixRequest(request, true);
@@ -1081,6 +1109,34 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     vm.prank(TOKEN_OWNER);
     vm.expectRevert(Invalidated.selector);
     market.acceptRequest(requestId2, 1, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
+
+    // Next request valid
+    requestId1 = createOffer(params1);
+    uint256 msgVal = params1.currency == address(0) ? params1.pricePerToken : 0;
+    vm.prank(TOKEN_OWNER);
+    market.acceptRequest{value: msgVal}(requestId1, 1, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
+  }
+
+  function test_acceptOffer_invalidatedToken(RequestParams memory params1, RequestParams memory params2) external {
+    _fixRequest(params1, false);
+    _fixRequest(params2, false);
+    vm.assume(params1.tokenContract != params2.tokenContract);
+    uint256 requestId1 = createOffer(params1);
+    uint256 requestId2 = createOffer(params2);
+
+    vm.prank(CURRENCY_OWNER);
+    vm.expectEmit(true, true, true, true, address(market));
+    emit RequestsInvalidated(CURRENCY_OWNER, params1.tokenContract, requestId2 + 1);
+    market.invalidateRequests(params1.tokenContract);
+
+    (bool valid,) = market.isRequestValid(requestId1, 1);
+    assertFalse(valid);
+    (valid,) = market.isRequestValid(requestId2, 1);
+    assertTrue(valid); // Unaffected
+
+    vm.prank(TOKEN_OWNER);
+    vm.expectRevert(Invalidated.selector);
+    market.acceptRequest(requestId1, 1, TOKEN_OWNER, emptyFees, emptyFeeRecipients);
 
     // Next request valid
     requestId1 = createOffer(params1);

@@ -15,6 +15,7 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/se
 contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
   mapping(uint256 => Request) internal _requests;
   mapping(address => uint256) public invalidBeforeId;
+  mapping(address => mapping(address => uint256)) public invalidTokenBeforeId;
   mapping(address => CustomRoyalty) public customRoyalties;
 
   uint256 private _nextRequestId;
@@ -35,7 +36,11 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
   }
 
   /// @inheritdoc ISequenceMarketFunctions
-  function createRequestBatch(RequestParams[] calldata requests) external nonReentrant returns (uint256[] memory requestIds) {
+  function createRequestBatch(RequestParams[] calldata requests)
+    external
+    nonReentrant
+    returns (uint256[] memory requestIds)
+  {
     uint256 len = requests.length;
     requestIds = new uint256[](len);
     for (uint256 i; i < len; i++) {
@@ -112,7 +117,7 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
       request.currency,
       request.pricePerToken,
       request.expiry
-      );
+    );
 
     return requestId;
   }
@@ -124,11 +129,7 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
     address recipient,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeRecipients
-  )
-    external
-    payable
-    nonReentrant
-  {
+  ) external payable nonReentrant {
     _acceptRequest(requestId, quantity, recipient, additionalFees, additionalFeeRecipients);
   }
 
@@ -139,10 +140,7 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
     address[] calldata recipients,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeRecipients
-  )
-    external
-    nonReentrant
-  {
+  ) external nonReentrant {
     uint256 len = requestIds.length;
     if (len != quantities.length || len != recipients.length) {
       revert InvalidBatchRequest();
@@ -167,9 +165,7 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
     address recipient,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeRecipients
-  )
-    internal
-  {
+  ) internal {
     Request memory request = _requests[requestId];
     if (request.creator == address(0)) {
       // Request cancelled, completed or never existed
@@ -178,7 +174,10 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
     if (quantity == 0 || quantity > request.quantity) {
       revert InvalidQuantity();
     }
-    if (requestId < invalidBeforeId[request.creator]) {
+    if (
+      requestId < invalidBeforeId[request.creator]
+        || requestId < invalidTokenBeforeId[request.creator][request.tokenContract]
+    ) {
       revert Invalidated();
     }
     if (_isExpired(request)) {
@@ -325,6 +324,12 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
   }
 
   /// @inheritdoc ISequenceMarketFunctions
+  function invalidateRequests(address tokenContract) external {
+    invalidTokenBeforeId[msg.sender][tokenContract] = _nextRequestId;
+    emit RequestsInvalidated(msg.sender, tokenContract, _nextRequestId);
+  }
+
+  /// @inheritdoc ISequenceMarketFunctions
   function getRequest(uint256 requestId) external view returns (Request memory request) {
     return _requests[requestId];
   }
@@ -341,7 +346,10 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
   /// @inheritdoc ISequenceMarketFunctions
   function isRequestValid(uint256 requestId, uint256 quantity) public view returns (bool valid, Request memory request) {
     request = _requests[requestId];
-    if (requestId < invalidBeforeId[request.creator]) {
+    if (
+      requestId < invalidBeforeId[request.creator]
+        || requestId < invalidTokenBeforeId[request.creator][request.tokenContract]
+    ) {
       return (false, request);
     }
     if (quantity == 0) {
@@ -466,8 +474,8 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
       } catch {} // solhint-disable-line no-empty-blocks
     } catch {} // solhint-disable-line no-empty-blocks
 
-    return quantity == 1 && who == tokenOwner
-      && (operator == market || IERC721(tokenContract).isApprovedForAll(who, market));
+    return
+      quantity == 1 && who == tokenOwner && (operator == market || IERC721(tokenContract).isApprovedForAll(who, market));
   }
 
   /**

@@ -144,6 +144,11 @@ interface ISequenceMarketFunctions is ISequenceMarketStorage {
   function invalidateRequests() external;
 
   /**
+   * Invalidates all current requests for a given `tokenContract` for the msg.sender.
+   */
+  function invalidateRequests(address tokenContract) external;
+
+  /**
    * Checks if a request is valid.
    * @param requestId The ID of the request.
    * @param quantity The amount of tokens to exchange. 0 is assumed to be the request's available quantity.
@@ -213,6 +218,9 @@ interface ISequenceMarketSignals {
 
   /// Emitted when a user bulk invalidates requests.
   event RequestsInvalidated(address indexed creator, uint256 indexed invalidatedBefore);
+
+  /// Emitted when a user bulk invalidates requests.
+  event RequestsInvalidated(address indexed creator, address indexed tokenContract, uint256 indexed invalidatedBefore);
 
   /// Emitted when custom royalty settings are changed.
   event CustomRoyaltyChanged(address indexed tokenContract, address recipient, uint96 fee);
