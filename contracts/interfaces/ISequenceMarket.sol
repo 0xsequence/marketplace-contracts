@@ -10,12 +10,12 @@ interface ISequenceMarketStorage {
    * @param tokenId The ID of the token.
    * @param quantity The quantity of tokens.
    * @param expiry The expiry of the request.
-   * @param currency The address of the currency.
+   * @param currency The address of the currency. address(0) for native token.
    * @param pricePerToken The price per token, including royalty fees.
    */
   struct RequestParams {
-    bool isListing; // True if the request is a listing, false if it is an offer.
-    bool isERC1155; // True if the token is an ERC1155 token, false if it is an ERC721 token.
+    bool isListing;
+    bool isERC1155;
     address tokenContract;
     uint256 tokenId;
     uint256 quantity;
@@ -33,7 +33,7 @@ interface ISequenceMarketStorage {
    * @param tokenId The ID of the token.
    * @param quantity The quantity of tokens.
    * @param expiry The expiry of the request.
-   * @param currency The address of the currency.
+   * @param currency The address of the currency. address(0) for native token.
    * @param pricePerToken The price per token, including royalty fees.
    */
   struct Request {
@@ -92,7 +92,7 @@ interface ISequenceMarketFunctions is ISequenceMarketStorage {
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeRecipients
   )
-    external;
+    external payable;
 
   /**
    * Accepts requests.
@@ -137,6 +137,16 @@ interface ISequenceMarketFunctions is ISequenceMarketStorage {
    * @return requests The requests.
    */
   function getRequestBatch(uint256[] calldata requestIds) external view returns (Request[] memory requests);
+
+  /**
+   * Invalidates all current requests for the msg.sender.
+   */
+  function invalidateRequests() external;
+
+  /**
+   * Invalidates all current requests for a given `tokenContract` for the msg.sender.
+   */
+  function invalidateRequests(address tokenContract) external;
 
   /**
    * Checks if a request is valid.
@@ -206,6 +216,12 @@ interface ISequenceMarketSignals {
   /// Emitted when a request is cancelled.
   event RequestCancelled(uint256 indexed requestId, address indexed tokenContract);
 
+  /// Emitted when a user bulk invalidates requests.
+  event RequestsInvalidated(address indexed creator, uint256 indexed invalidatedBefore);
+
+  /// Emitted when a user bulk invalidates requests.
+  event RequestsInvalidated(address indexed creator, address indexed tokenContract, uint256 indexed invalidatedBefore);
+
   /// Emitted when custom royalty settings are changed.
   event CustomRoyaltyChanged(address indexed tokenContract, address recipient, uint96 fee);
 
@@ -242,6 +258,9 @@ interface ISequenceMarketSignals {
 
   /// Thrown when expiry is invalid.
   error InvalidExpiry();
+
+  /// Thrown when request has been explicitly invalidated.
+  error Invalidated();
 
   /// Thrown when the additional fees are invalid.
   error InvalidAdditionalFees();

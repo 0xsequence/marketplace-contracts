@@ -29,7 +29,7 @@ struct RequestParams {
 |`tokenId`|`uint256`|The ID of the token.|
 |`quantity`|`uint256`|The quantity of tokens.|
 |`expiry`|`uint96`|The expiry of the request.|
-|`currency`|`address`|The address of the currency.|
+|`currency`|`address`|The address of the currency. address(0) for native token.|
 |`pricePerToken`|`uint256`|The price per token, including royalty fees.|
 
 ### Request
@@ -61,7 +61,7 @@ struct Request {
 |`tokenId`|`uint256`|The ID of the token.|
 |`quantity`|`uint256`|The quantity of tokens.|
 |`expiry`|`uint96`|The expiry of the request.|
-|`currency`|`address`|The address of the currency.|
+|`currency`|`address`|The address of the currency. address(0) for native token.|
 |`pricePerToken`|`uint256`|The price per token, including royalty fees.|
 
 ### CustomRoyalty
@@ -144,7 +144,7 @@ function acceptRequest(
   address recipient,
   uint256[] calldata additionalFees,
   address[] calldata additionalFeeRecipients
-) external;
+) external payable;
 ```
 **Parameters**
 
@@ -255,6 +255,24 @@ function getRequestBatch(uint256[] calldata requestIds) external view returns (R
 |----|----|-----------|
 |`requests`|`Request[]`|The requests.|
 
+
+### invalidateRequests
+
+Invalidates all current requests for the msg.sender.
+
+
+```solidity
+function invalidateRequests() external;
+```
+
+### invalidateRequests
+
+Invalidates all current requests for a given `tokenContract` for the msg.sender.
+
+
+```solidity
+function invalidateRequests(address tokenContract) external;
+```
 
 ### isRequestValid
 
@@ -379,6 +397,22 @@ Emitted when a request is cancelled.
 event RequestCancelled(uint256 indexed requestId, address indexed tokenContract);
 ```
 
+### RequestsInvalidated
+Emitted when a user bulk invalidates requests.
+
+
+```solidity
+event RequestsInvalidated(address indexed creator, uint256 indexed invalidatedBefore);
+```
+
+### RequestsInvalidated
+Emitted when a user bulk invalidates requests.
+
+
+```solidity
+event RequestsInvalidated(address indexed creator, address indexed tokenContract, uint256 indexed invalidatedBefore);
+```
+
 ### CustomRoyaltyChanged
 Emitted when custom royalty settings are changed.
 
@@ -466,6 +500,14 @@ Thrown when expiry is invalid.
 
 ```solidity
 error InvalidExpiry();
+```
+
+### Invalidated
+Thrown when request has been explicitly invalidated.
+
+
+```solidity
+error Invalidated();
 ```
 
 ### InvalidAdditionalFees

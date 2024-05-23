@@ -10,6 +10,20 @@ mapping(uint256 => Request) internal _requests;
 ```
 
 
+### invalidBeforeId
+
+```solidity
+mapping(address => uint256) public invalidBeforeId;
+```
+
+
+### invalidTokenBeforeId
+
+```solidity
+mapping(address => mapping(address => uint256)) public invalidTokenBeforeId;
+```
+
+
 ### customRoyalties
 
 ```solidity
@@ -29,7 +43,21 @@ uint256 private _nextRequestId;
 
 
 ```solidity
-constructor(address _owner);
+constructor();
+```
+
+### initialize
+
+
+```solidity
+function initialize(address _owner) external initializer;
+```
+
+### _authorizeUpgrade
+
+
+```solidity
+function _authorizeUpgrade(address) internal override onlyOwner;
 ```
 
 ### createRequest
@@ -110,7 +138,7 @@ function acceptRequest(
   address recipient,
   uint256[] calldata additionalFees,
   address[] calldata additionalFeeRecipients
-) external nonReentrant;
+) external payable nonReentrant;
 ```
 **Parameters**
 
@@ -220,6 +248,24 @@ function _cancelRequest(uint256 requestId) internal;
 |`requestId`|`uint256`|The ID of the request.|
 
 
+### invalidateRequests
+
+Invalidates all current requests for the msg.sender.
+
+
+```solidity
+function invalidateRequests() external;
+```
+
+### invalidateRequests
+
+Invalidates all current requests for the msg.sender.
+
+
+```solidity
+function invalidateRequests(address tokenContract) external;
+```
+
 ### getRequest
 
 Gets a request.
@@ -266,8 +312,6 @@ function getRequestBatch(uint256[] calldata requestIds) external view returns (R
 
 Checks if a request is valid.
 
-A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
-
 
 ```solidity
 function isRequestValid(uint256 requestId, uint256 quantity) public view returns (bool valid, Request memory request);
@@ -290,8 +334,6 @@ function isRequestValid(uint256 requestId, uint256 quantity) public view returns
 ### isRequestValidBatch
 
 Checks if requests are valid.
-
-A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
 
 
 ```solidity

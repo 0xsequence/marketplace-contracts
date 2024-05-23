@@ -1,41 +1,46 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity 0.8.19;
 
-import {ISequenceMarket} from "./interfaces/ISequenceMarket.sol";
+import {ISequenceMarket, ISequenceMarketFunctions} from "./interfaces/ISequenceMarket.sol";
 import {IERC721} from "./interfaces/IERC721.sol";
 import {IERC2981} from "./interfaces/IERC2981.sol";
 import {IERC20} from "@0xsequence/erc-1155/contracts/interfaces/IERC20.sol";
 import {IERC165} from "@0xsequence/erc-1155/contracts/interfaces/IERC165.sol";
 import {IERC1155} from "@0xsequence/erc-1155/contracts/interfaces/IERC1155.sol";
 import {TransferHelper} from "@uniswap/lib/contracts/libraries/TransferHelper.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
-contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
+contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
   mapping(uint256 => Request) internal _requests;
+  mapping(address => uint256) public invalidBeforeId;
+  mapping(address => mapping(address => uint256)) public invalidTokenBeforeId;
   mapping(address => CustomRoyalty) public customRoyalties;
 
   uint256 private _nextRequestId;
 
-  constructor(address _owner) {
+  constructor() {
+    _disableInitializers();
+  }
+
+  function initialize(address _owner) external initializer {
     _transferOwnership(_owner);
   }
 
-  /**
-   * Creates a request.
-   * @param request The request's details.
-   * @return requestId The ID of the request.
-   */
+  function _authorizeUpgrade(address) internal override onlyOwner {}
+
+  /// @inheritdoc ISequenceMarketFunctions
   function createRequest(RequestParams calldata request) external nonReentrant returns (uint256 requestId) {
     return _createRequest(request);
   }
 
-  /**
-   * Creates requests.
-   * @param requests The requests' details.
-   * @return requestIds The IDs of the requests.
-   */
-  function createRequestBatch(RequestParams[] calldata requests) external nonReentrant returns (uint256[] memory requestIds) {
+  /// @inheritdoc ISequenceMarketFunctions
+  function createRequestBatch(RequestParams[] calldata requests)
+    external
+    nonReentrant
+    returns (uint256[] memory requestIds)
+  {
     uint256 len = requests.length;
     requestIds = new uint256[](len);
     for (uint256 i; i < len; i++) {
@@ -62,9 +67,6 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
 
     // Check interfaces
     _requireInterface(tokenContract, params.isERC1155 ? type(IERC1155).interfaceId : type(IERC721).interfaceId);
-    if (params.currency == address(0)) {
-      revert InvalidCurrency();
-    }
 
     if (params.isListing) {
       // Check valid token for listing
@@ -72,6 +74,10 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
         revert InvalidTokenApproval(tokenContract, params.tokenId, quantity, msg.sender);
       }
     } else {
+      if (params.currency == address(0)) {
+        // Native token support not available for offers
+        revert InvalidCurrency();
+      }
       // Check approved currency for offer inc royalty
       uint256 total = quantity * params.pricePerToken;
       (, uint256 royaltyAmount) = getRoyaltyInfo(tokenContract, params.tokenId, total);
@@ -111,51 +117,30 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
       request.currency,
       request.pricePerToken,
       request.expiry
-      );
+    );
 
     return requestId;
   }
 
-  /**
-   * Accepts a request.
-   * @param requestId The ID of the request.
-   * @param quantity The quantity of tokens to accept.
-   * @param recipient The recipient of the accepted tokens.
-   * @param additionalFees The additional fees to pay.
-   * @param additionalFeeRecipients The addresses to send the additional fees to.
-   */
+  /// @inheritdoc ISequenceMarketFunctions
   function acceptRequest(
     uint256 requestId,
     uint256 quantity,
     address recipient,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeRecipients
-  )
-    external
-    nonReentrant
-  {
+  ) external payable nonReentrant {
     _acceptRequest(requestId, quantity, recipient, additionalFees, additionalFeeRecipients);
   }
 
-  /**
-   * Accepts requests.
-   * @param requestIds The IDs of the requests.
-   * @param quantities The quantities of tokens to accept.
-   * @param recipients The recipients of the accepted tokens.
-   * @param additionalFees The additional fees to pay.
-   * @param additionalFeeRecipients The addresses to send the additional fees to.
-   * @dev Additional fees are applied to each request.
-   */
+  /// @inheritdoc ISequenceMarketFunctions
   function acceptRequestBatch(
     uint256[] calldata requestIds,
     uint256[] calldata quantities,
     address[] calldata recipients,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeRecipients
-  )
-    external
-    nonReentrant
-  {
+  ) external nonReentrant {
     uint256 len = requestIds.length;
     if (len != quantities.length || len != recipients.length) {
       revert InvalidBatchRequest();
@@ -180,9 +165,7 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     address recipient,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeRecipients
-  )
-    internal
-  {
+  ) internal {
     Request memory request = _requests[requestId];
     if (request.creator == address(0)) {
       // Request cancelled, completed or never existed
@@ -191,11 +174,21 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     if (quantity == 0 || quantity > request.quantity) {
       revert InvalidQuantity();
     }
+    if (
+      requestId < invalidBeforeId[request.creator]
+        || requestId < invalidTokenBeforeId[request.creator][request.tokenContract]
+    ) {
+      revert Invalidated();
+    }
     if (_isExpired(request)) {
       revert InvalidExpiry();
     }
     if (additionalFees.length != additionalFeeRecipients.length) {
       revert InvalidAdditionalFees();
+    }
+    if (request.currency != address(0) && msg.value != 0) {
+      // Sent native token when not required
+      revert InvalidCurrency();
     }
 
     // Update request state
@@ -227,6 +220,8 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
       tokenRecipient = request.creator;
     }
 
+    bool isNative = request.currency == address(0);
+
     if (royaltyAmount > 0) {
       if (request.isListing) {
         // Royalties are paid by the maker. This reduces the cost for listings.
@@ -237,7 +232,13 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
         revert InvalidRoyalty();
       }
       // Transfer royalties
-      TransferHelper.safeTransferFrom(request.currency, currencySender, royaltyRecipient, royaltyAmount);
+      if (isNative) {
+        // Transfer native token
+        TransferHelper.safeTransferETH(royaltyRecipient, royaltyAmount);
+      } else {
+        // Transfer currency
+        TransferHelper.safeTransferFrom(request.currency, currencySender, royaltyRecipient, royaltyAmount);
+      }
     }
 
     // Transfer additional fees
@@ -248,8 +249,12 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
       if (feeRecipient == address(0) || fee == 0) {
         revert InvalidAdditionalFees();
       }
+      if (isNative) {
+        TransferHelper.safeTransferETH(feeRecipient, fee);
+      } else {
+        TransferHelper.safeTransferFrom(request.currency, currencySender, feeRecipient, fee);
+      }
       totalFees += fee;
-      TransferHelper.safeTransferFrom(request.currency, currencySender, feeRecipient, fee);
     }
     if (!request.isListing) {
       // Fees are paid by the taker. This reduces the cost for offers.
@@ -260,8 +265,18 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
       revert InvalidAdditionalFees();
     }
 
-    // Transfer currency
-    TransferHelper.safeTransferFrom(request.currency, currencySender, currencyRecipient, remainingCost);
+    if (isNative) {
+      // Transfer native token
+      TransferHelper.safeTransferETH(currencyRecipient, remainingCost);
+      uint256 thisBal = address(this).balance;
+      if (thisBal > 0) {
+        // Transfer any remaining native token back to currency sender (msg.sender)
+        TransferHelper.safeTransferETH(currencySender, thisBal);
+      }
+    } else {
+      // Transfer currency
+      TransferHelper.safeTransferFrom(request.currency, currencySender, currencyRecipient, remainingCost);
+    }
 
     // Transfer token
     if (request.isERC1155) {
@@ -273,18 +288,12 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     emit RequestAccepted(requestId, msg.sender, tokenContract, recipient, quantity, _requests[requestId].quantity);
   }
 
-  /**
-   * Cancels a request.
-   * @param requestId The ID of the request.
-   */
+  /// @inheritdoc ISequenceMarketFunctions
   function cancelRequest(uint256 requestId) external nonReentrant {
     _cancelRequest(requestId);
   }
 
-  /**
-   * Cancels requests.
-   * @param requestIds The IDs of the requests.
-   */
+  /// @inheritdoc ISequenceMarketFunctions
   function cancelRequestBatch(uint256[] calldata requestIds) external nonReentrant {
     for (uint256 i; i < requestIds.length; i++) {
       _cancelRequest(requestIds[i]);
@@ -308,20 +317,24 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     emit RequestCancelled(requestId, tokenContract);
   }
 
-  /**
-   * Gets a request.
-   * @param requestId The ID of the request.
-   * @return request The request.
-   */
+  /// @inheritdoc ISequenceMarketFunctions
+  function invalidateRequests() external {
+    invalidBeforeId[msg.sender] = _nextRequestId;
+    emit RequestsInvalidated(msg.sender, _nextRequestId);
+  }
+
+  /// @inheritdoc ISequenceMarketFunctions
+  function invalidateRequests(address tokenContract) external {
+    invalidTokenBeforeId[msg.sender][tokenContract] = _nextRequestId;
+    emit RequestsInvalidated(msg.sender, tokenContract, _nextRequestId);
+  }
+
+  /// @inheritdoc ISequenceMarketFunctions
   function getRequest(uint256 requestId) external view returns (Request memory request) {
     return _requests[requestId];
   }
 
-  /**
-   * Gets requests.
-   * @param requestIds The IDs of the requests.
-   * @return requests The requests.
-   */
+  /// @inheritdoc ISequenceMarketFunctions
   function getRequestBatch(uint256[] calldata requestIds) external view returns (Request[] memory requests) {
     uint256 len = requestIds.length;
     requests = new Request[](len);
@@ -330,16 +343,15 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     }
   }
 
-  /**
-   * Checks if a request is valid.
-   * @param requestId The ID of the request.
-   * @param quantity The amount of tokens to exchange. 0 is assumed to be the request's available quantity.
-   * @return valid The validity of the request.
-   * @return request The request.
-   * @notice A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
-   */
+  /// @inheritdoc ISequenceMarketFunctions
   function isRequestValid(uint256 requestId, uint256 quantity) public view returns (bool valid, Request memory request) {
     request = _requests[requestId];
+    if (
+      requestId < invalidBeforeId[request.creator]
+        || requestId < invalidTokenBeforeId[request.creator][request.tokenContract]
+    ) {
+      return (false, request);
+    }
     if (quantity == 0) {
       // 0 is assumed to be max quantity
       quantity = request.quantity;
@@ -358,14 +370,7 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     return (valid, request);
   }
 
-  /**
-   * Checks if requests are valid.
-   * @param requestIds The IDs of the requests.
-   * @param quantities The amount of tokens to exchange per request. 0 is assumed to be the request's available quantity.
-   * @return valid The validities of the requests.
-   * @return requests The requests.
-   * @notice A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.
-   */
+  /// @inheritdoc ISequenceMarketFunctions
   function isRequestValidBatch(uint256[] calldata requestIds, uint256[] calldata quantities)
     external
     view
@@ -408,14 +413,7 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
     emit CustomRoyaltyChanged(tokenContract, recipient, fee);
   }
 
-  /**
-   * Returns the royalty details for the given token and cost.
-   * @param tokenContract Address of the token being traded.
-   * @param tokenId The ID of the token.
-   * @param cost Amount of currency sent/received for the trade.
-   * @return recipient Address to send royalties to.
-   * @return royalty Amount of currency to be paid as royalties.
-   */
+  /// @inheritdoc ISequenceMarketFunctions
   function getRoyaltyInfo(address tokenContract, uint256 tokenId, uint256 cost)
     public
     view
@@ -476,8 +474,8 @@ contract SequenceMarket is ISequenceMarket, Ownable, ReentrancyGuard {
       } catch {} // solhint-disable-line no-empty-blocks
     } catch {} // solhint-disable-line no-empty-blocks
 
-    return quantity == 1 && who == tokenOwner
-      && (operator == market || IERC721(tokenContract).isApprovedForAll(who, market));
+    return
+      quantity == 1 && who == tokenOwner && (operator == market || IERC721(tokenContract).isApprovedForAll(who, market));
   }
 
   /**
