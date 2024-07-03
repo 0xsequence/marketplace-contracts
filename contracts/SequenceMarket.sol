@@ -49,8 +49,9 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
   {
     uint256 len = requests.length;
     requestIds = new uint256[](len);
-    for (uint256 i; i < len; i++) {
+    for (uint256 i; i < len;) {
       requestIds[i] = _createRequest(requests[i]);
+      unchecked { ++i; }
     }
   }
 
@@ -152,8 +153,9 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
       revert InvalidBatchRequest();
     }
 
-    for (uint256 i; i < len; i++) {
+    for (uint256 i; i < len;) {
       _acceptRequest(requestIds[i], quantities[i], recipients[i], additionalFees, additionalFeeRecipients);
+      unchecked { ++i; }
     }
   }
 
@@ -249,7 +251,8 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
 
     // Transfer additional fees
     uint256 totalFees;
-    for (uint256 i; i < additionalFees.length; i++) {
+    uint256 len = additionalFees.length;
+    for (uint256 i; i < len;) {
       uint256 fee = additionalFees[i];
       address feeRecipient = additionalFeeRecipients[i];
       if (feeRecipient == address(0) || fee == 0) {
@@ -261,6 +264,7 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
         TransferHelper.safeTransferFrom(request.currency, currencySender, feeRecipient, fee);
       }
       totalFees += fee;
+      unchecked { ++i; }
     }
     if (!request.isListing) {
       // Fees are paid by the taker. This reduces the cost for offers.
@@ -301,8 +305,10 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
 
   /// @inheritdoc ISequenceMarketFunctions
   function cancelRequestBatch(uint256[] calldata requestIds) external nonReentrant {
-    for (uint256 i; i < requestIds.length; i++) {
+    uint256 len = requestIds.length;
+    for (uint256 i; i < len;) {
       _cancelRequest(requestIds[i]);
+      unchecked { ++i; }
     }
   }
 
@@ -344,8 +350,9 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
   function getRequestBatch(uint256[] calldata requestIds) external view returns (Request[] memory requests) {
     uint256 len = requestIds.length;
     requests = new Request[](len);
-    for (uint256 i; i < len; i++) {
+    for (uint256 i; i < len;) {
       requests[i] = _requests[requestIds[i]];
+      unchecked { ++i; }
     }
   }
 
@@ -388,8 +395,9 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
     }
     valid = new bool[](len);
     requests = new Request[](len);
-    for (uint256 i; i < len; i++) {
+    for (uint256 i; i < len;) {
       (valid[i], requests[i]) = isRequestValid(requestIds[i], quantities[i]);
+      unchecked { ++i; }
     }
   }
 
