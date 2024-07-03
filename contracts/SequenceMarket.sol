@@ -25,6 +25,12 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
   }
 
   function initialize(address _owner) external initializer {
+    __ReentrancyGuard_init();
+    // __UUPSUpgradeable_init(); Empty
+    // __ERC1967Upgrade_init(); Empty
+    // __Context_init(); Empty
+    // __Ownable_init(); Skip
+
     _transferOwnership(_owner);
   }
 
