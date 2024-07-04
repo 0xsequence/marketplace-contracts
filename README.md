@@ -62,6 +62,13 @@ forge coverage --report lcov && lcov --remove lcov.info -o lcov.info 'test/*' 's
 cd report && py -m http.server
 ```
 
+Compare and save gas report with:
+
+```bash
+forge snapshot --diff .gas-snapshot
+forge snapshot
+```
+
 ### Formatting
 
 Please ensure code is formatted before committing. If you use VSCode, you will be prompted to install the Prettier extension.

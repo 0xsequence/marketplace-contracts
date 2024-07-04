@@ -5,11 +5,15 @@ import {SequenceMarket} from "./SequenceMarket.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
+
 contract SequenceMarketFactory {
+  event ImplementationAddress(address indexed implementation);
+
   address public implementation;
 
   constructor() {
     implementation = address(new SequenceMarket());
+    emit ImplementationAddress(implementation);
   }
 
   function deploy(bytes32 salt, address owner) external returns (address proxy) {
