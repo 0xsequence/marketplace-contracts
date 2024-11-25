@@ -124,6 +124,7 @@ contract SequenceMarketBatchPayableTest is SequenceMarketTest {
     // Verify the ETH balance after the transaction (should have spent 20)
     assertEq(TOKEN_OWNER.balance, initialTokenBalance + 20);
     assertEq(CURRENCY_OWNER.balance, initialCurrencyBalance - 20);
+    assertEq(address(marketB).balance, 0);
   }
 
   function test_acceptListingBatchPayable(RequestParams memory request, address[] memory recipients) external {
@@ -182,6 +183,7 @@ contract SequenceMarketBatchPayableTest is SequenceMarketTest {
     assertEq(CURRENCY_OWNER.balance, nativeBalCurrency - totalPrice2);
     assertEq(TOKEN_OWNER.balance, nativeBalTokenOwner + totalPrice2 - royalty2);
     assertEq(ROYALTY_RECIPIENT.balance, nativeBalRoyal + royalty2);
+    assertEq(address(marketB).balance, 0);
   }
 
   function test_acceptListingBatchPayable_incorrectValue(RequestParams memory request, address[] memory recipients) external {
@@ -232,13 +234,10 @@ contract SequenceMarketBatchPayableTest is SequenceMarketTest {
 
     // Check excess value is returned
     assertEq(CURRENCY_OWNER.balance, initialBalCurrency - totalPrice);
+    assertEq(address(marketB).balance, 0);
   }
 
-  function test_acceptListingBatchPayable_mixedCurrency(RequestParams memory requestA, RequestParams memory requestB, address[] memory recipients) external {
-    vm.assume(recipients.length > 1);
-    assembly {
-        mstore(recipients, 2)
-    }
+  function test_acceptListingBatchPayable_mixedCurrency(RequestParams memory requestA, RequestParams memory requestB) external {
     // Max one can be ERC-721 because of how test data is generated
     vm.assume(requestA.isERC1155 || requestB.isERC1155);
 
@@ -256,6 +255,10 @@ contract SequenceMarketBatchPayableTest is SequenceMarketTest {
     quantities[0] = requestA.quantity;
     quantities[1] = requestB.quantity;
 
+    address[] memory recipients = new address[](2);
+    recipients[0] = CURRENCY_OWNER;
+    recipients[1] = CURRENCY_OWNER;
+
     // Allows mixed currencies when accepting batch
     vm.prank(CURRENCY_OWNER);
     // Send whole balance. Will be refunded
@@ -270,5 +273,6 @@ contract SequenceMarketBatchPayableTest is SequenceMarketTest {
     // Check balances
     assertEq(erc20.balanceOf(CURRENCY_OWNER), initialBalERC20 - requestA.pricePerToken * requestA.quantity);
     assertEq(CURRENCY_OWNER.balance, initialBalCurrency - requestB.pricePerToken * requestB.quantity);
+    assertEq(address(marketB).balance, 0);
   }
 }
