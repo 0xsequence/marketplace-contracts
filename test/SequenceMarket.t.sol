@@ -62,28 +62,28 @@ contract ERC1155ReentryAttacker is IERC1155TokenReceiver {
 }
 
 contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, ReentrancyGuardUpgradeable, Test {
-  SequenceMarketFactory private factory;
-  SequenceMarket private market;
-  ERC1155RoyaltyMock private erc1155;
-  ERC721RoyaltyMock private erc721;
-  ERC20TokenMock private erc20;
+  SequenceMarketFactory internal factory;
+  SequenceMarket internal market;
+  ERC1155RoyaltyMock internal erc1155;
+  ERC721RoyaltyMock internal erc721;
+  ERC20TokenMock internal erc20;
 
-  uint256 private constant TOKEN_ID = 1;
-  uint256 private constant TOKEN_QUANTITY = 100;
-  uint256 private constant CURRENCY_QUANTITY = 1000 ether;
+  uint256 internal constant TOKEN_ID = 1;
+  uint256 internal constant TOKEN_QUANTITY = 100;
+  uint256 internal constant CURRENCY_QUANTITY = 1000 ether;
 
-  uint256 private constant ROYALTY_FEE = 200; // 2%
+  uint256 internal constant ROYALTY_FEE = 200; // 2%
 
-  address private constant MARKET_OWNER = address(uint160(uint256(keccak256("market_owner"))));
-  address private constant TOKEN_OWNER = address(uint160(uint256(keccak256("token_owner"))));
-  address private constant CURRENCY_OWNER = address(uint160(uint256(keccak256("currency_owner"))));
-  address private constant ROYALTY_RECIPIENT = address(uint160(uint256(keccak256("royalty_recipient"))));
-  address private constant FEE_RECIPIENT = address(uint160(uint256(keccak256("fee_recipient"))));
+  address internal constant MARKET_OWNER = address(uint160(uint256(keccak256("market_owner"))));
+  address internal constant TOKEN_OWNER = address(uint160(uint256(keccak256("token_owner"))));
+  address internal constant CURRENCY_OWNER = address(uint160(uint256(keccak256("currency_owner"))));
+  address internal constant ROYALTY_RECIPIENT = address(uint160(uint256(keccak256("royalty_recipient"))));
+  address internal constant FEE_RECIPIENT = address(uint160(uint256(keccak256("fee_recipient"))));
 
-  uint256[] private emptyFees;
-  address[] private emptyFeeRecipients;
+  uint256[] internal emptyFees;
+  address[] internal emptyFeeRecipients;
 
-  uint256 private expectedNextRequestId;
+  uint256 internal expectedNextRequestId;
 
   struct Balances {
     uint256 currency;
@@ -91,7 +91,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     uint256 royal;
   }
 
-  function setUp() external {
+  function setUp() virtual external {
     factory = new SequenceMarketFactory();
     market = SequenceMarket(factory.deploy(0, MARKET_OWNER));
 
@@ -1495,12 +1495,12 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     vm.assume(erc1155.balanceOf(recipients[1], TOKEN_ID) == 0);
 
     request.isERC1155 = true;
-    _fixRequest(request, false);
+    _fixRequest(request, true);
 
     // Prevent overflow
     request.pricePerToken /= 2;
     request.quantity /= 2;
-    _fixRequest(request, false); // Fix values too low
+    _fixRequest(request, true); // Fix values too low
 
     uint256 totalPrice2 = request.pricePerToken * request.quantity * 2;
     uint256 erc20BalCurrency = erc20.balanceOf(CURRENCY_OWNER);
@@ -1925,7 +1925,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
   // Helpers
   //
 
-  function _fixRequest(RequestParams memory request, bool isListing) private view {
+  function _fixRequest(RequestParams memory request, bool isListing) internal view {
     request.isListing = isListing;
     request.tokenContract = request.isERC1155 ? address(erc1155) : address(erc721);
     request.tokenId = TOKEN_ID;
@@ -1934,7 +1934,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     request.expiry = uint96(_bound(uint256(request.expiry), block.timestamp + 1, type(uint96).max - 100));
 
     if (request.isERC1155) {
-      request.quantity = _bound(request.quantity, 1, TOKEN_QUANTITY);
+      request.quantity = _bound(request.quantity, 1, TOKEN_QUANTITY / 2);
     } else {
       request.quantity = 1;
     }
