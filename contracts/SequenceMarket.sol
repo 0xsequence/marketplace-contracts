@@ -136,7 +136,7 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
     address recipient,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeRecipients
-  ) external payable nonReentrant {
+  ) external payable virtual nonReentrant {
     _acceptRequest(requestId, quantity, recipient, additionalFees, additionalFeeRecipients);
   }
 
@@ -173,7 +173,7 @@ contract SequenceMarket is ISequenceMarket, OwnableUpgradeable, ReentrancyGuardU
     address recipient,
     uint256[] calldata additionalFees,
     address[] calldata additionalFeeRecipients
-  ) internal {
+  ) internal virtual {
     Request memory request = _requests[requestId];
     if (request.creator == address(0)) {
       // Request cancelled, completed or never existed

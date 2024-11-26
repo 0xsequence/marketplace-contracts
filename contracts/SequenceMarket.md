@@ -138,7 +138,7 @@ function acceptRequest(
   address recipient,
   uint256[] calldata additionalFees,
   address[] calldata additionalFeeRecipients
-) external payable nonReentrant;
+) external payable virtual nonReentrant;
 ```
 **Parameters**
 
@@ -190,7 +190,7 @@ function _acceptRequest(
   address recipient,
   uint256[] calldata additionalFees,
   address[] calldata additionalFeeRecipients
-) internal;
+) internal virtual;
 ```
 **Parameters**
 
