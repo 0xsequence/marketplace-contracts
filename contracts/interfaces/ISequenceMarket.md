@@ -1,6 +1,5 @@
 # ISequenceMarket
 
-
 ## Structs
 ### RequestParams
 Request parameters.

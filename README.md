@@ -16,6 +16,12 @@ Any platform is free to integrate with the Sequence Market contract to provide a
 
 Note: The Sequence Market is designed to support standard ERC-1155, ERC-721 and ERC-20 implementations. Tokens with non-standard implementations (e.g. tokens that take fees on transfer) may not be compatible with the Sequence Market contract. Use of a token in the Sequence Market does not imply endorsement of the token by the Sequence Market.
 
+### Sequence Market Batch Payable
+
+The Sequence Market Batch Payable contract extends the Sequence Market contract to enable batch fills of orders with native currency.
+
+Using the Sequence Market Batch Payable contract should be preferred over the standard Sequence Market for all use cases.
+
 #### Flow
 
 1. The order creator approves the Sequence Market contract to transfer of ERC-1155 or ERC-721 tokens for a listing, or ERC-20 tokens for an offer.
