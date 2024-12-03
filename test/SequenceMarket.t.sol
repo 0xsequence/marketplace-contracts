@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 import {SequenceMarket} from "contracts/SequenceMarket.sol";
 import {SequenceMarketFactory} from "contracts/SequenceMarketFactory.sol";
 import {ISequenceMarketSignals, ISequenceMarketStorage} from "contracts/interfaces/ISequenceMarket.sol";
+import {BatchPayableHelper} from "contracts/BatchPayableHelper.sol";
 import {ERC1155RoyaltyMock} from "./mocks/ERC1155RoyaltyMock.sol";
 import {ERC721RoyaltyMock} from "./mocks/ERC721RoyaltyMock.sol";
 import {ERC20TokenMock} from "./mocks/ERC20TokenMock.sol";
@@ -67,6 +68,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
   ERC1155RoyaltyMock private erc1155;
   ERC721RoyaltyMock private erc721;
   ERC20TokenMock private erc20;
+  BatchPayableHelper private batchPayableHelper;
 
   uint256 private constant TOKEN_ID = 1;
   uint256 private constant TOKEN_QUANTITY = 100;
@@ -91,9 +93,10 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     uint256 royal;
   }
 
-  function setUp() external {
+  function setUp() public {
     factory = new SequenceMarketFactory();
     market = SequenceMarket(factory.deploy(0, MARKET_OWNER));
+    batchPayableHelper = new BatchPayableHelper();
 
     erc1155 = new ERC1155RoyaltyMock();
     erc721 = new ERC721RoyaltyMock();
@@ -114,7 +117,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     erc721.mintMock(TOKEN_OWNER, TOKEN_QUANTITY);
 
     erc20.mockMint(CURRENCY_OWNER, CURRENCY_QUANTITY);
-    vm.deal(CURRENCY_OWNER, CURRENCY_QUANTITY);
+    vm.deal(CURRENCY_OWNER, CURRENCY_QUANTITY * 10);
 
     // Approvals
     vm.startPrank(TOKEN_OWNER);
@@ -1477,8 +1480,9 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
         vm.expectEmit(true, true, true, true, address(market));
         emit RequestAccepted(requestIds[i], CURRENCY_OWNER, request.tokenContract, CURRENCY_OWNER, quantity, requestQuantity - quantity);
+        uint256 value = request.isListing && request.currency == address(0) ? request.pricePerToken * quantity : 0;
         vm.prank(CURRENCY_OWNER);
-        market.acceptRequest(requestIds[i], quantity, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
+        market.acceptRequest{value: value}(requestIds[i], quantity, CURRENCY_OWNER, emptyFees, emptyFeeRecipients);
       }
     }
   }
@@ -1595,6 +1599,159 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
 
     vm.expectRevert(InvalidBatchRequest.selector);
     market.acceptRequestBatch(requestIds, quantities, recipients, emptyFees, emptyFeeRecipients);
+  }
+
+  //
+  // Accept Request Batch Payable
+  //
+  function test_acceptRequestBatchPayable_fixed() external {
+    uint256 initialCurrencyBalance = CURRENCY_OWNER.balance;
+    uint256 initialTokenBalance = TOKEN_OWNER.balance;
+
+    RequestParams memory request = RequestParams({
+      isListing: true,
+      isERC1155: true,
+      tokenContract: address(erc1155),
+      tokenId: TOKEN_ID,
+      quantity: 1,
+      currency: address(0),
+      pricePerToken: 10,
+      expiry: uint96(block.timestamp)
+    });
+
+    uint256[] memory requestIds = new uint256[](2);
+    request.isERC1155 = true;
+    requestIds[0] = createListing(request);
+    request.isERC1155 = false;
+    requestIds[1] = createListing(request);
+
+    uint256[] memory quantities = new uint256[](2);
+    address[] memory recipients = new address[](2);
+    for (uint256 i = 0; i < 2; i++) {
+      quantities[i] = 1;
+      recipients[i] = CURRENCY_OWNER;
+    }
+
+    // Expect the same events as before
+    vm.expectEmit(true, true, true, true, address(market));
+    emit RequestAccepted(requestIds[0], address(batchPayableHelper), address(erc1155), CURRENCY_OWNER, 1, 0);
+    vm.expectEmit(true, true, true, true, address(market));
+    emit RequestAccepted(requestIds[1], address(batchPayableHelper), address(erc721), CURRENCY_OWNER, 1, 0);
+
+    // Execute batch accept with value above expected price
+    vm.prank(CURRENCY_OWNER);
+    batchPayableHelper.acceptRequestBatch{value: 30}(
+      market, requestIds, quantities, recipients, emptyFees, emptyFeeRecipients
+    );
+
+    // Verify the ETH balance after the transaction (should have spent 20)
+    assertEq(TOKEN_OWNER.balance, initialTokenBalance + 20);
+    assertEq(CURRENCY_OWNER.balance, initialCurrencyBalance - 20);
+    assertEq(address(market).balance, 0);
+  }
+
+  function test_acceptListingBatchPayable(RequestParams memory request, address[] memory recipients) external {
+    vm.assume(recipients.length > 1);
+    vm.assume(recipients[0] != recipients[1]);
+    assembly {
+      mstore(recipients, 2)
+    }
+    _assumeNotPrecompile(recipients[0]);
+    _assumeNotPrecompile(recipients[1]);
+    vm.assume(erc1155.balanceOf(recipients[0], TOKEN_ID) == 0);
+    vm.assume(erc1155.balanceOf(recipients[1], TOKEN_ID) == 0);
+
+    request.isERC1155 = true;
+    request.currency = address(0); // Force native currency
+    _fixRequest(request, true);
+
+    // Prevent overflow
+    request.pricePerToken /= 2;
+    request.quantity /= 2;
+    _fixRequest(request, true); // Fix values too low
+
+    uint256 totalPrice2 = request.pricePerToken * request.quantity * 2;
+    uint256 nativeBalCurrency = CURRENCY_OWNER.balance;
+    uint256 nativeBalTokenOwner = TOKEN_OWNER.balance;
+    uint256 nativeBalRoyal = ROYALTY_RECIPIENT.balance;
+
+    uint256[] memory requestIds = new uint256[](2);
+    requestIds[0] = createListing(request);
+    request.expiry++;
+    requestIds[1] = createListing(request);
+
+    uint256[] memory quantities = new uint256[](2);
+    quantities[0] = request.quantity;
+    quantities[1] = request.quantity;
+
+    vm.expectEmit(true, true, true, true, address(market));
+    emit RequestAccepted(
+      requestIds[0], address(batchPayableHelper), address(erc1155), recipients[0], request.quantity, 0
+    );
+    vm.expectEmit(true, true, true, true, address(market));
+    emit RequestAccepted(
+      requestIds[1], address(batchPayableHelper), address(erc1155), recipients[1], request.quantity, 0
+    );
+
+    vm.startPrank(CURRENCY_OWNER);
+    batchPayableHelper.acceptRequestBatch{value: totalPrice2}(
+      market, requestIds, quantities, recipients, emptyFees, emptyFeeRecipients
+    );
+    vm.stopPrank();
+
+    uint256 royalty2 = (((totalPrice2 / 2) * ROYALTY_FEE) / 10_000) * 2; // Cater for rounding error
+
+    assertEq(erc1155.balanceOf(recipients[0], TOKEN_ID), request.quantity);
+    assertEq(erc1155.balanceOf(recipients[1], TOKEN_ID), request.quantity);
+    assertEq(CURRENCY_OWNER.balance, nativeBalCurrency - totalPrice2);
+    assertEq(TOKEN_OWNER.balance, nativeBalTokenOwner + totalPrice2 - royalty2);
+    assertEq(ROYALTY_RECIPIENT.balance, nativeBalRoyal + royalty2);
+    assertEq(address(market).balance, 0);
+  }
+
+  function test_acceptListingBatchPayable_incorrectValue(RequestParams memory request, address[] memory recipients)
+    external
+  {
+    vm.assume(recipients.length > 1);
+    vm.assume(recipients[0] != recipients[1]);
+    assembly {
+      mstore(recipients, 2)
+    }
+    _assumeNotPrecompile(recipients[0]);
+    _assumeNotPrecompile(recipients[1]);
+
+    request.isERC1155 = true;
+    request.currency = address(0); // Force native currency
+    _fixRequest(request, true);
+
+    uint256[] memory requestIds = new uint256[](2);
+    requestIds[0] = createListing(request);
+    request.expiry++;
+    requestIds[1] = createListing(request);
+
+    uint256[] memory quantities = new uint256[](2);
+    quantities[0] = request.quantity;
+    quantities[1] = request.quantity;
+
+    uint256 totalPrice = request.pricePerToken * request.quantity * 2;
+    uint256 initialBalCurrency = CURRENCY_OWNER.balance;
+
+    // Test with insufficient value
+    vm.prank(CURRENCY_OWNER);
+    vm.expectRevert("TransferHelper::safeTransferETH: ETH transfer failed");
+    batchPayableHelper.acceptRequestBatch{value: totalPrice - 1}(
+      market, requestIds, quantities, recipients, emptyFees, emptyFeeRecipients
+    );
+
+    // Test with excess value
+    vm.prank(CURRENCY_OWNER);
+    batchPayableHelper.acceptRequestBatch{value: totalPrice + 1}(
+      market, requestIds, quantities, recipients, emptyFees, emptyFeeRecipients
+    );
+
+    // Check excess value is returned
+    assertEq(CURRENCY_OWNER.balance, initialBalCurrency - totalPrice);
+    assertEq(address(market).balance, 0);
   }
 
   //
@@ -1934,7 +2091,7 @@ contract SequenceMarketTest is ISequenceMarketSignals, ISequenceMarketStorage, R
     request.expiry = uint96(_bound(uint256(request.expiry), block.timestamp + 1, type(uint96).max - 100));
 
     if (request.isERC1155) {
-      request.quantity = _bound(request.quantity, 1, TOKEN_QUANTITY);
+      request.quantity = _bound(request.quantity, 1, TOKEN_QUANTITY / 2);
     } else {
       request.quantity = 1;
     }
