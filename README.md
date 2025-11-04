@@ -1,7 +1,7 @@
 # Marketplace Contracts
 
 Contains contracts for the Sequence Marketplace.
-
+open
 ## Contracts
 
 ### Sequence Market
