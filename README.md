@@ -87,6 +87,6 @@ The contracts in this repository have been audited by [Quantstamp](https://quant
 
 ## License
 
-Copyright (c) 2023-present [Horizon Blockchain Games Inc](https://horizon.io).
+Copyright (c) 2023-present [Sequence Platforms ULC Inc](https://horizon.io).
 
 Licensed under [Apache-2.0](./LICENSE)
